@@ -1,0 +1,21 @@
+# Dziennik jachtowy (LogBook)
+
+Elektroniczny dziennik jachtowy odwzorowujący papierowy dziennik AKŻ AGH – PWA działające offline na telefonach, tabletach i komputerach.
+
+## Funkcje
+- Wszystkie pola dziennika: dane rejsu i jachtu, spis ożaglowania, sprawdzenie stanu jachtu, szkolenie, wpisy godzinowe 1–16, zliczenie 17, trasa 18A–C, przebieg żeglugi 19–22, kontrole 23–28, podpisy 29, crew list, wachty, karta rejsu.
+- **Wypływamy z portu / Wchodzimy do portu / Kotwica** – pobiera pozycję GPS, nazwę portu (18A/18B/18C) i robi wpis w przebiegu żeglugi.
+- **📍 przy każdej godzinie** – pozycja Φ/Λ, KD (kurs nad dnem), szybkość (średnia od poprzedniej pozycji), LOG; przy dostępie do internetu puste pola pogody (wiatr, ciśnienie, temperatura, zachmurzenie, widzialność, stan morza) z modelu Open‑Meteo – oznaczone jako „auto”.
+- **Przypomnienia** o pełnej godzinie (konfigurowalna minuta, interwał w morzu/porcie, powtórki, pola wymagane).
+- Tryb nocny (czerwony), tryb wachty (ekran nie gaśnie), eksport/import JSON, druk/PDF.
+
+## Rozwój
+```bash
+npm install
+npm run dev
+```
+
+## Deploy
+Każdy push na `main` buduje aplikację i wdraża ją na Cloudflare Pages (`.github/workflows/deploy.yml`).
+Projekt Pages `logbook` tworzy się automatycznie przy pierwszym uruchomieniu. Wymagany sekret `CLOUDFLARE_API_TOKEN` z uprawnieniem **Cloudflare Pages: Edit**.
+Pull requesty dostają podglądowe wdrożenie.
