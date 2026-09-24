@@ -26,6 +26,8 @@
   --shadow: 0 1px 2px rgba(31, 43, 110, 0.06), 0 4px 16px rgba(31, 43, 110, 0.06);
   --radius: 14px;
   --tap: 44px;
+  /* iOS 26: pod paskiem statusu system dokłada rozmyty pas (~40pt) – treść zaczyna się niżej */
+  --top-safe: calc(env(safe-area-inset-top, 0px) + min(env(safe-area-inset-top, 0px), 40px));
   --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
   color-scheme: light;
@@ -198,7 +200,7 @@ h3 {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: calc(10px + env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 10px max(16px, env(safe-area-inset-left));
+  padding: calc(10px + var(--top-safe)) max(16px, env(safe-area-inset-right)) 10px max(16px, env(safe-area-inset-left));
   background: var(--primary);
   color: var(--on-primary);
 }
@@ -219,8 +221,9 @@ body::before {
   content: '';
   position: fixed;
   inset: 0 0 auto 0;
-  height: env(safe-area-inset-top);
+  height: var(--top-safe);
   background: var(--primary);
+  pointer-events: none;
   z-index: 1200;
 }
 @media (prefers-color-scheme: dark) {
@@ -309,7 +312,7 @@ main {
     position: sticky;
     top: 0;
     height: 100dvh;
-    padding: calc(20px + env(safe-area-inset-top)) 14px 20px max(14px, env(safe-area-inset-left));
+    padding: calc(20px + var(--top-safe)) 14px 20px max(14px, env(safe-area-inset-left));
     background: #1f2b6e;
     color: #fff;
   }
@@ -1264,7 +1267,7 @@ table {
   background: var(--surface);
   width: 100%;
   max-width: 760px;
-  max-height: 94dvh;
+  max-height: calc(100dvh - var(--top-safe) - 12px);
   border-radius: 20px 20px 0 0;
   display: flex;
   flex-direction: column;
@@ -1447,7 +1450,7 @@ h3.group {
   gap: 6px;
   overflow-x: auto;
   position: sticky;
-  top: calc(52px + env(safe-area-inset-top));
+  top: calc(52px + var(--top-safe));
   z-index: 5;
   background: var(--bg);
   padding: 4px 0;
@@ -1754,6 +1757,7 @@ h3.group {
 
 /* ===== Welcome ===== */
 .welcome {
+  padding-top: calc(24px + var(--top-safe)) !important;
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
@@ -1790,7 +1794,7 @@ html.print-mode body {
   top: 0;
   z-index: 1100; /* nad kontrolkami mapy */
   margin: 0 -16px 8px;
-  padding: calc(12px + env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 12px max(16px, env(safe-area-inset-left));
+  padding: calc(12px + var(--top-safe)) max(16px, env(safe-area-inset-right)) 12px max(16px, env(safe-area-inset-left));
   background: #fff;
   border-bottom: 1px solid #ddd;
   flex-wrap: wrap;
@@ -1935,7 +1939,7 @@ html.print-mode body {
   background: var(--surface);
 }
 .map-page {
-  height: calc(100dvh - 56px - 72px - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 32px);
+  height: calc(100dvh - 56px - 72px - var(--top-safe) - env(safe-area-inset-bottom) - 32px);
   min-height: 380px;
 }
 .voyage-map.full {
@@ -1947,6 +1951,12 @@ html.print-mode body {
   }
   .main-map .topbar {
     display: none;
+  }
+  .main-map main {
+    padding-top: calc(24px + var(--top-safe));
+  }
+  .map-page {
+    height: calc(100dvh - 48px - var(--top-safe) - 24px);
   }
 }
 .map-panel {

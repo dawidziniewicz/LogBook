@@ -21,3 +21,7 @@ npm run dev
 Każdy push na `main` buduje aplikację i wdraża ją na Cloudflare Pages (`.github/workflows/deploy.yml`).
 Projekt Pages `logbook` tworzy się automatycznie przy pierwszym uruchomieniu. Wymagany sekret `CLOUDFLARE_API_TOKEN` z uprawnieniem **Cloudflare Pages: Edit**.
 Pull requesty dostają podglądowe wdrożenie.
+
+## iPhone (iOS 26+)
+iOS rozmywa pas pod paskiem statusu w aplikacjach z ekranu głównego (Liquid Glass) – nie da się tego wyłączyć, więc aplikacja trzyma tam jednolity kolor nagłówka, a treść zaczyna się poniżej.
+Po zmianach ustawień paska statusu trzeba usunąć ikonę z ekranu głównego i dodać ją ponownie – iOS zapamiętuje konfigurację z chwili dodania.
