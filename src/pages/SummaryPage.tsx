@@ -3,6 +3,7 @@ import { useStore, useVoyage } from '../store';
 import { allTallies, sortedDays } from '../lib/compute';
 import { fmtDate } from '../lib/time';
 import { Card, Field, Stat } from '../components/ui';
+import { VoyageMap } from '../components/VoyageMap';
 
 const c = (n: number) => String(n).replace('.', ',');
 
@@ -55,6 +56,10 @@ export function SummaryPage() {
           <dt>Uczestnicy rejsu</dt>
           <dd>{v.crew.map((m) => `${m.firstName} ${m.lastName}${m.role ? ` (${m.role})` : ''}`).join(', ') || '—'}</dd>
         </dl>
+      </Card>
+
+      <Card title="Ślad rejsu" actions={<a className="btn small ghost" href="#/map">Otwórz mapę →</a>}>
+        <VoyageMap className="summary-map" />
       </Card>
 
       <Card title="Zestawienie dobowe">

@@ -5,6 +5,7 @@ import { allTallies, sortedDays } from '../lib/compute';
 import { fmtLat, fmtLon } from '../lib/geo';
 import { fmtDate, hourLabel, weekday } from '../lib/time';
 import type { Tally } from '../types';
+import { TrackSketch } from '../components/TrackSketch';
 
 const T: { k: keyof Tally; l: string }[] = [
   { k: 'port', l: 'Na postoju' },
@@ -144,6 +145,10 @@ export function PrintPage() {
       })}
 
       <section className="p-page">
+        <h2>Ślad rejsu</h2>
+        <div className="p-track">
+          <TrackSketch height={200} />
+        </div>
         <h2>Crew list</h2>
         <table className="p-grid">
           <thead><tr><th>Lp.</th><th>Imię</th><th>Nazwisko</th><th>Stopień</th><th>Nr patentu</th><th>Funkcja</th><th>Narodowość</th><th>Nr dokumentu</th><th>Data i miejsce ur.</th><th>Telefon</th><th>Dodatkowe</th></tr></thead>

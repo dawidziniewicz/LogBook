@@ -2,6 +2,8 @@
 import { precacheAndRoute, cleanupOutdatedCaches, createHandlerBoundToURL } from 'workbox-precaching';
 import { NavigationRoute, registerRoute } from 'workbox-routing';
 import { clientsClaim } from 'workbox-core';
+import { CacheFirst } from 'workbox-strategies';
+import { ExpirationPlugin } from 'workbox-expiration';
 
 declare const self: ServiceWorkerGlobalScope & { __WB_MANIFEST: Array<{ url: string; revision: string | null }> };
 
@@ -11,6 +13,14 @@ cleanupOutdatedCaches();
 precacheAndRoute(self.__WB_MANIFEST);
 // aplikacja działa offline – każda nawigacja dostaje index.html z cache
 registerRoute(new NavigationRoute(createHandlerBoundToURL('/index.html')));
+// kafelki mapy – raz obejrzane w porcie są dostępne na morzu bez zasięgu
+registerRoute(
+  ({ url }) => url.hostname === 'tile.openstreetmap.org' || url.hostname === 'tiles.openseamap.org',
+  new CacheFirst({
+    cacheName: 'map-tiles',
+    plugins: [new ExpirationPlugin({ maxEntries: 4000, maxAgeSeconds: 60 * 24 * 3600, purgeOnQuotaError: true })],
+  }),
+);
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();

@@ -14,17 +14,19 @@ import { SummaryPage } from './pages/SummaryPage';
 import { ReferencePage } from './pages/ReferencePage';
 import { SettingsPage } from './pages/SettingsPage';
 import { PrintPage } from './pages/PrintPage';
+import { MapPage } from './pages/MapPage';
 
 const NAV = [
   { to: '/', icon: '⌂', label: 'Start', match: (p: string[]) => p.length === 0 },
   { to: `/day`, icon: '✎', label: 'Dziennik', match: (p: string[]) => p[0] === 'day' },
+  { to: '/map', icon: '🗺', label: 'Mapa', match: (p: string[]) => p[0] === 'map' },
   { to: '/voyage', icon: '⛵', label: 'Rejs i jacht', match: (p: string[]) => p[0] === 'voyage' },
   { to: '/crew', icon: '👥', label: 'Załoga', match: (p: string[]) => p[0] === 'crew' },
   { to: '/summary', icon: 'Σ', label: 'Karta rejsu', match: (p: string[]) => p[0] === 'summary' },
   { to: '/ref', icon: '📻', label: 'UKF i skale', match: (p: string[]) => p[0] === 'ref' },
   { to: '/settings', icon: '⚙', label: 'Ustawienia', match: (p: string[]) => p[0] === 'settings' },
 ];
-const MOBILE_NAV = ['/', '/day', '/voyage', '/ref', '/settings'];
+const MOBILE_NAV = ['/', '/day', '/map', '/voyage', '/settings'];
 
 function useTheme() {
   const theme = useStore((s) => s.settings.theme);
@@ -76,7 +78,8 @@ export function App() {
   if (p0 === 'day') {
     const h = route.query.get('h');
     page = <DayPage key={p1 ?? 'today'} date={p1 ?? dateKey()} hour={h ? +h : undefined} />;
-  } else if (p0 === 'voyage') page = <VoyagePage />;
+  } else if (p0 === 'map') page = <MapPage />;
+  else if (p0 === 'voyage') page = <VoyagePage />;
   else if (p0 === 'crew') page = <CrewPage />;
   else if (p0 === 'summary') page = <SummaryPage />;
   else if (p0 === 'ref') page = <ReferencePage />;
@@ -104,12 +107,13 @@ export function App() {
           ))}
         </nav>
       </aside>
-      <div className="main">
+      <div className={`main${p0 === 'map' ? ' main-map' : ''}`}>
         <header className="topbar">
           <h1>{title}</h1>
           <div className="topbar-right">
-            <a href="#/crew" className="top-link">👥</a>
-            <a href="#/summary" className="top-link">Σ</a>
+            <a href="#/ref" className="top-link" aria-label="UKF i skale">📻</a>
+            <a href="#/crew" className="top-link" aria-label="Załoga">👥</a>
+            <a href="#/summary" className="top-link" aria-label="Karta rejsu">Σ</a>
           </div>
         </header>
         {reminder && (
