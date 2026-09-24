@@ -68,6 +68,7 @@ export function VoyageMap(props: {
     const still = !!props.print;
     const map = L.map(divRef.current!, {
       zoomControl: !still,
+      attributionControl: false,
       worldCopyJump: true,
       zoomSnap: still ? 0.25 : 1,
       dragging: !still && !(embedded && L.Browser.mobile),
@@ -113,9 +114,10 @@ export function VoyageMap(props: {
     const layer = dataLayer.current;
     if (!map || !layer) return;
     layer.clearLayers();
-    const primary = css('--primary');
-    const coral = css('--coral');
-    const ok = css('--ok');
+    // w druku zawsze kolory marki, niezależnie od motywu
+    const primary = props.print ? '#3447aa' : css('--primary');
+    const coral = props.print ? '#d6546a' : css('--coral');
+    const ok = props.print ? '#2c8a68' : css('--ok');
     const latlngs = line.map((p) => [p.lat, p.lon] as L.LatLngTuple);
     if (latlngs.length > 1) {
       L.polyline(latlngs, { color: '#ffffff', weight: 7, opacity: 0.8 }).addTo(layer);
@@ -222,10 +224,15 @@ export function VoyageMap(props: {
   return (
     <div className={`voyage-map${props.print ? ' print-map' : ''} ${props.className ?? ''}`}>
       <div ref={divRef} className="map-canvas" />
-      {!props.measure && line.length > 1 && !props.print && (
+      {!props.measure && !props.print && (
         <div className="map-foot">
-          Długość śladu: <b>{fmtNm(line.reduce((d, p, i) => (i ? d + distanceNm(line[i - 1], p) : 0), 0))}</b>
-          <span className="muted"> · {line.length} punktów</span>
+          {line.length > 1 && (
+            <span>
+              Długość śladu: <b>{fmtNm(line.reduce((d, p, i) => (i ? d + distanceNm(line[i - 1], p) : 0), 0))}</b>
+              <span className="muted"> · {line.length} punktów</span>
+            </span>
+          )}
+          <span className="map-credit">© OpenStreetMap · © OpenSeaMap</span>
         </div>
       )}
       {props.measure && (
@@ -287,6 +294,7 @@ export function VoyageMap(props: {
               </button>
             )}
           </div>
+          <div className="map-credit">© OpenStreetMap · © OpenSeaMap</div>
         </div>
       )}
     </div>

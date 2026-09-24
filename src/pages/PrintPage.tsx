@@ -1,4 +1,4 @@
-import { useMemo, useState, useSyncExternalStore } from 'react';
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { useVoyage } from '../store';
 import { BASIC_CHECKS, DAY_CHECKS, HOUR_FIELDS } from '../data/reference';
 import { allTallies, sortedDays } from '../lib/compute';
@@ -26,6 +26,11 @@ export function PrintPage() {
   const trackLen = useSyncExternalStore(subscribeTrack, () => getTrack().length);
   const line = useMemo(() => (v ? voyageLine(v, getTrack()) : []), [v, trackLen]); // eslint-disable-line react-hooks/exhaustive-deps
   const [mapReady, setMapReady] = useState(false);
+  // biała „kartka” także pod treścią wychodzącą poza ekran (inaczej prześwituje tło motywu)
+  useEffect(() => {
+    document.documentElement.classList.add('print-mode');
+    return () => document.documentElement.classList.remove('print-mode');
+  }, []);
   if (!v) return null;
   const hasTrack = line.length > 1;
   const trackNm = line.reduce((d, p, i) => (i ? d + distanceNm(line[i - 1], p) : 0), 0);
@@ -39,6 +44,7 @@ export function PrintPage() {
           ← Wróć
         </a>
       </div>
+      <p className="no-print muted small print-hint">Strona wydruku ma format A4 – tabele przewiniesz palcem w bok. Na iPhonie w oknie druku wybierz „Zapisz w Plikach” lub udostępnij jako PDF.</p>
 
       <section className="p-page">
         <h1>DZIENNIK JACHTOWY</h1>
