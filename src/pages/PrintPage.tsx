@@ -1,11 +1,14 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useSyncExternalStore } from 'react';
 import { useVoyage } from '../store';
 import { BASIC_CHECKS, DAY_CHECKS, HOUR_FIELDS } from '../data/reference';
 import { allTallies, sortedDays } from '../lib/compute';
 import { fmtLat, fmtLon } from '../lib/geo';
 import { fmtDate, hourLabel, weekday } from '../lib/time';
 import type { Tally } from '../types';
-import { TrackSketch } from '../components/TrackSketch';
+import { VoyageMap } from '../components/VoyageMap';
+import { getTrack, subscribeTrack } from '../lib/tracker';
+import { voyageLine } from '../lib/voyageTrack';
+import { distanceNm } from '../lib/geo';
 
 const T: { k: keyof Tally; l: string }[] = [
   { k: 'port', l: 'Na postoju' },
@@ -20,12 +23,17 @@ const c = (n: number) => String(n).replace('.', ',');
 export function PrintPage() {
   const v = useVoyage();
   const tallies = useMemo(() => (v ? allTallies(v) : {}), [v]);
+  const trackLen = useSyncExternalStore(subscribeTrack, () => getTrack().length);
+  const line = useMemo(() => (v ? voyageLine(v, getTrack()) : []), [v, trackLen]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [mapReady, setMapReady] = useState(false);
   if (!v) return null;
+  const hasTrack = line.length > 1;
+  const trackNm = line.reduce((d, p, i) => (i ? d + distanceNm(line[i - 1], p) : 0), 0);
   return (
     <div className="print">
       <div className="no-print row gap print-bar">
-        <button className="btn primary" onClick={() => window.print()}>
-          🖨 Drukuj / zapisz jako PDF
+        <button className="btn primary" onClick={() => window.print()} disabled={hasTrack && !mapReady}>
+          {hasTrack && !mapReady ? 'Wczytywanie mapy…' : '🖨 Drukuj / zapisz jako PDF'}
         </button>
         <a className="btn ghost" href="#/settings">
           ← Wróć
@@ -75,6 +83,16 @@ export function PrintPage() {
           </tbody>
         </table>
       </section>
+
+      {hasTrack && (
+        <section className="p-page">
+          <h2>Ślad rejsu</h2>
+          <VoyageMap print onReady={() => setMapReady(true)} />
+          <p className="p-note">
+            Długość śladu: {trackNm.toFixed(1).replace('.', ',')} Mm · mapa © OpenStreetMap, znaki nawigacyjne © OpenSeaMap
+          </p>
+        </section>
+      )}
 
       {sortedDays(v).map((d) => {
         const day = v.days[d];
@@ -145,10 +163,6 @@ export function PrintPage() {
       })}
 
       <section className="p-page">
-        <h2>Ślad rejsu</h2>
-        <div className="p-track">
-          <TrackSketch height={200} />
-        </div>
         <h2>Crew list</h2>
         <table className="p-grid">
           <thead><tr><th>Lp.</th><th>Imię</th><th>Nazwisko</th><th>Stopień</th><th>Nr patentu</th><th>Funkcja</th><th>Narodowość</th><th>Nr dokumentu</th><th>Data i miejsce ur.</th><th>Telefon</th><th>Dodatkowe</th></tr></thead>

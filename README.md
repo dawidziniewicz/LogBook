@@ -7,7 +7,7 @@ Elektroniczny dziennik jachtowy odwzorowujący papierowy dziennik AKŻ AGH – P
 - **Wypływamy z portu / Wchodzimy do portu / Kotwica** – pobiera pozycję GPS, nazwę portu (18A/18B/18C) i robi wpis w przebiegu żeglugi.
 - **📍 przy każdej godzinie** – pozycja Φ/Λ, KD (kurs nad dnem), szybkość (średnia od poprzedniej pozycji), LOG; przy dostępie do internetu puste pola pogody (wiatr, ciśnienie, temperatura, zachmurzenie, widzialność, stan morza) z modelu Open‑Meteo – oznaczone jako „auto”.
 - **Mapa** (OpenStreetMap + znaki nawigacyjne OpenSeaMap) ze śladem rejsu; dotknięcie mapy podaje odległość od jachtu w Mm, kurs i czas dojścia, tryb „Linijka” mierzy trasę z wielu punktów. Obejrzane kafelki są zapisywane i działają offline.
-- **Ślad rejsu** na mapie w karcie rejsu i w wydruku.
+- **Ślad rejsu** na prawdziwej mapie (OSM + OpenSeaMap): na ekranie Start, w karcie rejsu i w wydruku/PDF.
 - **Przypomnienia** o pełnej godzinie (konfigurowalna minuta, interwał w morzu/porcie, powtórki, pola wymagane).
 - Tryb nocny (czerwony), tryb wachty (ekran nie gaśnie), eksport/import JSON, druk/PDF.
 

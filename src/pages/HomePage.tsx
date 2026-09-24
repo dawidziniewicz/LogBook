@@ -9,7 +9,7 @@ import { nextReminder, requestNotificationPermission, setWakeLock, unlockAudio, 
 import { currentRow, dateKey, fmtDate, hhmm, hourLabel } from '../lib/time';
 import { getTrack, isTracking, subscribeTrack } from '../lib/tracker';
 import { AsyncButton, Card, Stat, toast } from '../components/ui';
-import { TrackSketch } from '../components/TrackSketch';
+import { VoyageMap } from '../components/VoyageMap';
 
 const STATUS_LABEL = { port: 'W porcie', sea: 'W morzu', anchor: 'Na kotwicy' } as const;
 
@@ -195,7 +195,7 @@ export function HomePage() {
             <Stat label="Mm dziś (ślad)" value={trackToday.toFixed(1).replace('.', ',')} />
             <Stat label="dni" value={sortedDays(v).length} />
           </div>
-          <TrackSketch />
+          <VoyageMap className="home-map" />
         </Card>
       </div>
 

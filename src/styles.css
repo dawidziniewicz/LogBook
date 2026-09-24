@@ -1930,9 +1930,30 @@ h3.group {
     filter: brightness(0.75) contrast(1.1);
   }
 }
-.p-track {
-  color: #3447aa;
-  max-width: 600px;
+.home-map .map-canvas {
+  height: 220px;
+  min-height: 0;
+}
+.print-map {
+  width: 680px;
+  max-width: 100%;
+  border-radius: 0;
+  border: 1px solid #555;
+}
+.print-map .map-canvas {
+  height: 520px;
+}
+.p-note {
+  font-size: 11px;
+  margin: 6px 0 0;
+}
+@media print {
+  .leaflet-tile-pane {
+    filter: none !important;
+  }
+  .print-map {
+    break-inside: avoid;
+  }
 }
 .tabbar {
   grid-template-columns: repeat(5, 1fr);

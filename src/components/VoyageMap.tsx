@@ -25,7 +25,13 @@ function css(name: string) {
 }
 
 /** mapa rejsu: OpenStreetMap + znaki nawigacyjne OpenSeaMap, ślad i pomiar odległości */
-export function VoyageMap(props: { measure?: boolean; className?: string }) {
+export function VoyageMap(props: {
+  measure?: boolean;
+  /** wersja do druku: bez przycisków i interakcji, zgłasza gotowość po wczytaniu kafelków */
+  print?: boolean;
+  onReady?: () => void;
+  className?: string;
+}) {
   const v = useVoyage();
   const trackLen = useSyncExternalStore(subscribeTrack, () => getTrack().length);
   const divRef = useRef<HTMLDivElement>(null);
@@ -35,6 +41,8 @@ export function VoyageMap(props: { measure?: boolean; className?: string }) {
   const boatMarker = useRef<L.CircleMarker>(null);
   const userMoved = useRef(false);
   const programmatic = useRef(false);
+  const osmRef = useRef<L.TileLayer>(null);
+  const readyFired = useRef(false);
   const [mode, setMode] = useState<Mode>('boat');
   const [boat, setBoat] = useState<Pt>();
   const [target, setTarget] = useState<Pt>();
@@ -57,10 +65,16 @@ export function VoyageMap(props: { measure?: boolean; className?: string }) {
   useEffect(() => {
     // w podsumowaniu mapa nie może „łapać” przewijania strony palcem ani kółkiem
     const embedded = !props.measure;
+    const still = !!props.print;
     const map = L.map(divRef.current!, {
-      zoomControl: true,
+      zoomControl: !still,
       worldCopyJump: true,
-      dragging: !(embedded && L.Browser.mobile),
+      zoomSnap: still ? 0.25 : 1,
+      dragging: !still && !(embedded && L.Browser.mobile),
+      touchZoom: !still,
+      doubleClickZoom: !still,
+      boxZoom: !still,
+      keyboard: !still,
       scrollWheelZoom: !embedded,
     }).setView([54.6, 18.6], 8);
     const osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -73,7 +87,8 @@ export function VoyageMap(props: { measure?: boolean; className?: string }) {
       crossOrigin: 'anonymous',
       attribution: '© <a href="https://www.openseamap.org">OpenSeaMap</a>',
     }).addTo(map);
-    L.control.layers({ 'Mapa (OSM)': osm }, { 'Znaki nawigacyjne (OpenSeaMap)': seamarks }, { position: 'topright' }).addTo(map);
+    osmRef.current = osm;
+    if (!still) L.control.layers({ 'Mapa (OSM)': osm }, { 'Znaki nawigacyjne (OpenSeaMap)': seamarks }, { position: 'topright' }).addTo(map);
     L.control.scale({ imperial: false, metric: true, position: 'bottomleft' }).addTo(map);
     // dopasowuj widok do śladu, dopóki użytkownik sam nie przesunie mapy
     map.on('dragstart', () => (userMoved.current = true));
@@ -126,6 +141,16 @@ export function VoyageMap(props: { measure?: boolean; className?: string }) {
       if (latlngs.length === 1) map.setView(latlngs[0], 13, { animate: false });
       else map.fitBounds(L.latLngBounds(latlngs), { ...fitPad(!!props.measure), maxZoom: 14, animate: false });
       programmatic.current = false;
+    }
+    // druk: gotowe, gdy kafelki dla widoku ze śladem się wczytają (lub po limicie czasu – np. offline)
+    if (props.print && props.onReady && !readyFired.current) {
+      const fire = () => {
+        if (readyFired.current) return;
+        readyFired.current = true;
+        props.onReady?.();
+      };
+      osmRef.current?.once('load', () => setTimeout(fire, 300));
+      setTimeout(fire, 10_000);
     }
   }, [line, waypoints]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -195,9 +220,9 @@ export function VoyageMap(props: { measure?: boolean; className?: string }) {
   };
 
   return (
-    <div className={`voyage-map ${props.className ?? ''}`}>
+    <div className={`voyage-map${props.print ? ' print-map' : ''} ${props.className ?? ''}`}>
       <div ref={divRef} className="map-canvas" />
-      {!props.measure && line.length > 1 && (
+      {!props.measure && line.length > 1 && !props.print && (
         <div className="map-foot">
           Długość śladu: <b>{fmtNm(line.reduce((d, p, i) => (i ? d + distanceNm(line[i - 1], p) : 0), 0))}</b>
           <span className="muted"> · {line.length} punktów</span>
