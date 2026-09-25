@@ -2402,3 +2402,40 @@ html.print-mode .leaflet-tile-pane {
 .welcome .btn.big {
   width: min(100%, 320px);
 }
+
+/* ===== Edycja trasy (linijka, trasa do opinii) ===== */
+.route-vertex {
+  background: none;
+  border: 0;
+}
+.route-vertex span {
+  display: block;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+  cursor: grab;
+}
+.route-mid {
+  background: none;
+  border: 0;
+}
+.route-mid span {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  border: 2px dashed #3447aa;
+  color: #3447aa;
+  font-weight: 800;
+  font-size: 15px;
+  line-height: 1;
+  cursor: copy;
+  opacity: 0.9;
+}
+.route-popup .leaflet-popup-content {
+  margin: 8px;
+}

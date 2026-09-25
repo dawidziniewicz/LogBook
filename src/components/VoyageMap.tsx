@@ -7,6 +7,7 @@ import { logWaypoints, voyageLine } from '../lib/voyageTrack';
 import { bearing, distanceNm, fmtCourse, fmtLat, fmtLon, getPosition } from '../lib/geo';
 import { num, sortedDays } from '../lib/compute';
 import { AsyncButton, toast } from './ui';
+import { drawEditableRoute } from '../lib/editableRoute';
 
 type Pt = { lat: number; lon: number };
 type Mode = 'boat' | 'ruler';
@@ -202,11 +203,21 @@ export function VoyageMap(props: {
     if (!result) return;
     const ll = result.pts.map((p) => [p.lat, p.lon] as L.LatLngTuple);
     const color = css('--coral');
-    if (ll.length > 1) L.polyline(ll, { color, weight: 3, dashArray: '8 8' }).addTo(layer);
-    ll.forEach((p, i) => {
-      if (mode === 'boat' && i === 0) return;
-      L.circleMarker(p, { radius: 6, color: '#fff', weight: 2, fillColor: color, fillOpacity: 1 }).addTo(layer);
-    });
+    if (mode === 'ruler') {
+      // linijka: punkty do przeciągania, „+” wstawia punkt pośredni, dotknięcie punktu – usuń
+      drawEditableRoute(layer, ruler, setRuler, { color, dashed: true });
+    } else {
+      L.polyline(ll, { color, weight: 3, dashArray: '8 8', interactive: false }).addTo(layer);
+      // cel pomiaru „od jachtu” też można przeciągnąć
+      const tm = L.marker(ll[ll.length - 1], {
+        draggable: true,
+        icon: L.divIcon({ className: 'route-vertex', html: `<span style="background:${color}"></span>`, iconSize: [22, 22], iconAnchor: [11, 11] }),
+      }).addTo(layer);
+      tm.on('dragend', () => {
+        const q = tm.getLatLng();
+        setTarget({ lat: q.lat, lon: q.lng });
+      });
+    }
     const last = ll[ll.length - 1];
     L.tooltip({ permanent: true, direction: 'top', offset: [0, -8], className: 'measure-tip' })
       .setLatLng(last)

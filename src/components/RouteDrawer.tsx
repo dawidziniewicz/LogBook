@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { distanceNm } from '../lib/geo';
+import { drawEditableRoute } from '../lib/editableRoute';
 import { AsyncButton, toast } from './ui';
 
 type Pt = { lat: number; lon: number };
@@ -52,21 +53,7 @@ export function RouteDrawer(props: { value: Pt[]; onChange: (pts: Pt[]) => void;
   useEffect(() => {
     const l = layer.current;
     if (!l) return;
-    l.clearLayers();
-    const ll = props.value.map((p) => [p.lat, p.lon] as L.LatLngTuple);
-    if (ll.length > 1) {
-      L.polyline(ll, { color: '#ffffff', weight: 7, opacity: 0.85 }).addTo(l);
-      L.polyline(ll, { color: '#3447aa', weight: 4 }).addTo(l);
-    }
-    ll.forEach((p, i) =>
-      L.circleMarker(p, {
-        radius: i === 0 || i === ll.length - 1 ? 7 : 4,
-        color: '#fff',
-        weight: 2,
-        fillColor: i === 0 ? '#2c8a68' : i === ll.length - 1 ? '#d6546a' : '#3447aa',
-        fillOpacity: 1,
-      }).addTo(l),
-    );
+    drawEditableRoute(l, props.value, (p) => onChange.current(p), { color: '#3447aa', halo: true, ends: true });
   }, [props.value]);
 
   let nm = 0;
@@ -107,7 +94,10 @@ export function RouteDrawer(props: { value: Pt[]; onChange: (pts: Pt[]) => void;
           </AsyncButton>
         )}
       </div>
-      <span className="field-hint">Dotykaj mapy w kolejnych punktach trasy (porty, zwroty). Przesuwaj i powiększaj mapę jak zwykle.</span>
+      <span className="field-hint">
+        Dotykaj mapy w kolejnych punktach trasy (porty, zwroty). Punkty możesz przeciągać, „+” w połowie odcinka wstawia punkt pośredni, a dotknięcie punktu
+        pozwala go usunąć.
+      </span>
     </div>
   );
 }
