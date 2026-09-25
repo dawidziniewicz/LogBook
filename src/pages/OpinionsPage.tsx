@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useStore, useVoyage } from '../store';
-import { DEFAULT_CLUB_HEADER, DUTIES, GRADES, RESILIENCE, ROLES, SEASICK, TRAINING_FOR } from '../data/opinion';
+import { DEFAULT_CLUB_HEADER, DUTIES, GRADES, nextDefaultRole, RESILIENCE, ROLES, SEASICK, TRAINING_FOR } from '../data/opinion';
 import { RIGS } from '../data/reference';
 import {
   buildOpinionsPdf,
@@ -48,8 +48,8 @@ const LANGS: [OpinionLang, string][] = [
   ['plen', 'PL / EN'],
 ];
 
-const newMember = (): CrewMember => ({
-  id: uid(), firstName: '', lastName: '', grade: '', patent: '', role: 'Załoga', nationality: 'PL', docNo: '', birth: '', phone: '', info: '', watch: '',
+const newMember = (role: string): CrewMember => ({
+  id: uid(), firstName: '', lastName: '', grade: '', patent: '', role, nationality: 'PL', docNo: '', birth: '', phone: '', info: '', watch: '',
 });
 
 export function OpinionsPage() {
@@ -362,7 +362,7 @@ export function OpinionsPage() {
           <button
             className="btn small"
             onClick={() => {
-              const m = newMember();
+              const m = newMember(nextDefaultRole(v.crew));
               mutate((vv) => void vv.crew.push(m));
               setOpen(m.id);
             }}

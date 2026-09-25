@@ -7,3 +7,9 @@ export const RESILIENCE = ['Dobra', 'Średnia', 'Słaba'];
 export const TRAINING_FOR = ['Sternika Jachtowego', 'Jachtowego Sternika Morskiego', 'Kapitana Jachtowego', 'Nie dotyczy'];
 
 export const DEFAULT_CLUB_HEADER = 'Akademicki Klub Żeglarski AGH\nul. Reymonta 21a\n30-059 Kraków';
+
+/** funkcja dla nowo dodawanej osoby: kolejno I, II, III oficer (pierwsza wolna), potem załoga */
+export function nextDefaultRole(crew: { role: string }[]) {
+  const taken = (r: string) => crew.some((m) => m.role.trim().toLowerCase() === r.toLowerCase());
+  return ['Pierwszy oficer', 'Drugi Oficer', 'Trzeci Oficer'].find((r) => !taken(r)) ?? 'Załoga';
+}

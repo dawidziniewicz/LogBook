@@ -214,6 +214,7 @@ function drawOpinion(doc: jsPDF, v: Voyage, m: CrewMember, f: ReturnType<typeof 
   if (a.logo) doc.addImage(a.logo, 'PNG', M, 9, 18, 18.6);
   const clubX = a.logo ? M + 21 : M;
   let vlogoX = PW - M;
+  let headerBottom = a.logo ? 9 + 18.6 : 0;
   if (a.vlogo) {
     const box = 23;
     const k = Math.min(box / a.vlogo.w, box / a.vlogo.h);
@@ -221,9 +222,11 @@ function drawOpinion(doc: jsPDF, v: Voyage, m: CrewMember, f: ReturnType<typeof 
     const h = a.vlogo.h * k;
     vlogoX = (hasRight ? RX - 4 : PW - M) - w;
     doc.addImage(a.vlogo.data, a.vlogo.data.startsWith('data:image/png') ? 'PNG' : 'JPEG', vlogoX, 9 + (box - h) / 2, w, h);
+    headerBottom = Math.max(headerBottom, 9 + (box + h) / 2);
   }
   const clubW = (a.vlogo ? vlogoX - 2 : hasRight ? RX - 4 : PW - M) - clubX;
-  const clubLines = (v.opinion?.clubHeader || DEFAULT_CLUB_HEADER).split('\n').map((l) => t(l)).filter(Boolean);
+  // pusty nagłówek zostaje pusty (domyślny adres tylko, gdy pole nigdy nie było ustawione)
+  const clubLines = (v.opinion?.clubHeader ?? DEFAULT_CLUB_HEADER).split('\n').map((l) => t(l)).filter(Boolean);
   // mniejsza czcionka zamiast łamania nazwy klubu (do 7,5 pt), dopiero potem zawijanie
   let clubSize = 9.5;
   set(clubSize, false, INK);
@@ -234,6 +237,7 @@ function drawOpinion(doc: jsPDF, v: Voyage, m: CrewMember, f: ReturnType<typeof 
   const club = clubLines.flatMap((l) => doc.splitTextToSize(l, clubW) as string[]).slice(0, 5);
   const clubLh = clubSize * s * PT * 1.3;
   club.forEach((l, i) => doc.text(l, clubX, 13.5 + i * clubLh));
+  if (club.length) headerBottom = Math.max(headerBottom, 13.5 + club.length * clubLh);
 
   let ry = 10;
   const box = (img: string, h: number) => {
@@ -252,12 +256,16 @@ function drawOpinion(doc: jsPDF, v: Voyage, m: CrewMember, f: ReturnType<typeof 
   let colW = hasRight ? RX - M - 5 : W;
 
   /* tytuł (dopasowany do szerokości kolumny) */
-  let y = Math.max(38, 13.5 + club.length * clubLh + 9);
+  // pusty tekst nagłówka: tytuł na samej górze strony (obok logo AKŻ, jeśli jest włączone)
+  const beside = !club.length && !!a.logo;
+  const titleX = beside ? clubX : M;
+  const titleW = beside ? (a.vlogo ? vlogoX - 2 : M + colW) - titleX : colW;
+  let y = beside ? 9 + (lang === 'plen' ? 7 : 11) * s : headerBottom ? Math.max(38, headerBottom + 9) : 10 + 7 * s;
   const fitTitle = (text: string, size: number, color: [number, number, number]) => {
     let sz = size;
     set(sz, true, color);
-    while (sz > 10 && doc.getTextWidth(text) > colW) set((sz -= 0.5), true, color);
-    doc.text(text, M, y);
+    while (sz > 10 && doc.getTextWidth(text) > titleW) set((sz -= 0.5), true, color);
+    doc.text(text, titleX, y);
     return sz;
   };
   if (lang === 'plen') {
@@ -269,8 +277,9 @@ function drawOpinion(doc: jsPDF, v: Voyage, m: CrewMember, f: ReturnType<typeof 
   }
   doc.setDrawColor(...BLUSH);
   doc.setLineWidth(1.2);
-  doc.line(M, y + 2.5, M + 70, y + 2.5);
+  doc.line(titleX, y + 2.5, titleX + Math.min(70, titleW), y + 2.5);
   y += 10;
+  if (beside) y = Math.max(y, headerBottom + 7);
 
   const widen = () => {
     if (hasRight && y > rightBottom) colW = W;

@@ -5,10 +5,10 @@ import { galleyWatch, sortedDays, watchAt } from '../lib/compute';
 import { addDays, dateKey, fmtDate, uid } from '../lib/time';
 import { Card, Field } from '../components/ui';
 import type { CrewMember } from '../types';
-import { GRADES, ROLES } from '../data/opinion';
+import { GRADES, nextDefaultRole, ROLES } from '../data/opinion';
 
-const emptyMember = (): CrewMember => ({
-  id: uid(), firstName: '', lastName: '', grade: '', patent: '', role: '', nationality: 'PL', docNo: '', birth: '', phone: '', info: '', watch: '',
+const emptyMember = (role: string): CrewMember => ({
+  id: uid(), firstName: '', lastName: '', grade: '', patent: '', role, nationality: 'PL', docNo: '', birth: '', phone: '', info: '', watch: '',
 });
 const p2 = (n: number) => String(n).padStart(2, '0');
 
@@ -40,7 +40,7 @@ export function CrewPage() {
           <button
             className="btn small"
             onClick={() => {
-              const m = emptyMember();
+              const m = emptyMember(nextDefaultRole(v.crew));
               mutate((vv) => void vv.crew.push(m));
               setOpen(m.id);
             }}
