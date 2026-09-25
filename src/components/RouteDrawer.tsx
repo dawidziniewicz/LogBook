@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { distanceNm } from '../lib/geo';
@@ -22,6 +22,9 @@ export function RouteDrawer(props: { value: Pt[]; onChange: (pts: Pt[]) => void;
   pts.current = props.value;
   const onChange = useRef(props.onChange);
   onChange.current = props.onChange;
+  const [delMode, setDelMode] = useState(false);
+  const del = useRef(false);
+  del.current = delMode;
 
   useEffect(() => {
     const m = L.map(div.current!, { attributionControl: false, worldCopyJump: true });
@@ -29,7 +32,8 @@ export function RouteDrawer(props: { value: Pt[]; onChange: (pts: Pt[]) => void;
     L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png', { maxZoom: 18, crossOrigin: 'anonymous' }).addTo(m);
     L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(m);
     layer.current = L.layerGroup().addTo(m);
-    m.on('click', (e: L.LeafletMouseEvent) => onChange.current([...pts.current, { lat: e.latlng.lat, lon: e.latlng.lng }]));
+    // w trybie usuwania dotknięcie mapy nie dodaje punktów
+    m.on('click', (e: L.LeafletMouseEvent) => !del.current && onChange.current([...pts.current, { lat: e.latlng.lat, lon: e.latlng.lng }]));
     const p = pts.current;
     if (p.length > 1) m.fitBounds(L.latLngBounds(p.map((x) => [x.lat, x.lon] as L.LatLngTuple)), { padding: [30, 30] });
     else if (p.length === 1) m.setView([p[0].lat, p[0].lon], 11);
@@ -53,8 +57,8 @@ export function RouteDrawer(props: { value: Pt[]; onChange: (pts: Pt[]) => void;
   useEffect(() => {
     const l = layer.current;
     if (!l) return;
-    drawEditableRoute(l, props.value, (p) => onChange.current(p), { color: '#3447aa', halo: true, ends: true });
-  }, [props.value]);
+    drawEditableRoute(l, props.value, (p) => onChange.current(p), { color: '#3447aa', halo: true, ends: true, deleteMode: delMode });
+  }, [props.value, delMode]);
 
   let nm = 0;
   for (let i = 1; i < props.value.length; i++) nm += distanceNm(props.value[i - 1], props.value[i]);
@@ -70,6 +74,9 @@ export function RouteDrawer(props: { value: Pt[]; onChange: (pts: Pt[]) => void;
         </span>
         <button className="btn small ghost" disabled={!props.value.length} onClick={() => props.onChange(props.value.slice(0, -1))}>
           ↶ Cofnij
+        </button>
+        <button className={`btn small${delMode ? ' danger-on' : ' ghost'}`} disabled={!props.value.length && !delMode} onClick={() => setDelMode(!delMode)}>
+          🗑 {delMode ? 'Zakończ usuwanie' : 'Usuwaj punkty'}
         </button>
         <button className="btn small ghost" disabled={props.value.length < 2} onClick={() => props.onChange([...props.value, props.value[0]])}>
           ⟲ Wróć do startu
@@ -95,8 +102,9 @@ export function RouteDrawer(props: { value: Pt[]; onChange: (pts: Pt[]) => void;
         )}
       </div>
       <span className="field-hint">
-        Dotykaj mapy w kolejnych punktach trasy (porty, zwroty). Punkty możesz przeciągać, „+” w połowie odcinka wstawia punkt pośredni, a dotknięcie punktu
-        pozwala go usunąć.
+        {delMode
+          ? 'Tryb usuwania: dotknij punktu (×), aby go usunąć.'
+          : 'Dotykaj mapy w kolejnych punktach trasy (porty, zwroty). Punkty możesz przeciągać, „+” w połowie odcinka wstawia punkt pośredni, a „🗑 Usuwaj punkty” pozwala je usuwać.'}
       </span>
     </div>
   );

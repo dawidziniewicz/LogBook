@@ -2439,3 +2439,31 @@ html.print-mode .leaflet-tile-pane {
 .route-popup .leaflet-popup-content {
   margin: 8px;
 }
+
+.btn.danger-on {
+  background: var(--coral);
+  border-color: var(--coral);
+  color: #fff;
+}
+.route-vertex.del span {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  color: #fff;
+  font-weight: 800;
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+  animation: wobble 1.2s ease-in-out infinite;
+}
+@keyframes wobble {
+  50% {
+    transform: scale(1.12);
+  }
+}
+
+.danger-text {
+  color: var(--coral);
+  font-weight: 600;
+}

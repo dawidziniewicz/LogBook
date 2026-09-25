@@ -48,6 +48,7 @@ export function VoyageMap(props: {
   const [boat, setBoat] = useState<Pt>();
   const [target, setTarget] = useState<Pt>();
   const [ruler, setRuler] = useState<Pt[]>([]);
+  const [delMode, setDelMode] = useState(false);
 
   const line = useMemo(() => (v ? voyageLine(v, getTrack()) : []), [v, trackLen]); // eslint-disable-line react-hooks/exhaustive-deps
   const waypoints = useMemo(() => (v ? logWaypoints(v) : []), [v]);
@@ -175,11 +176,11 @@ export function VoyageMap(props: {
     const onClick = (e: L.LeafletMouseEvent) => {
       const p = { lat: e.latlng.lat, lon: e.latlng.lng };
       if (mode === 'boat') setTarget(p);
-      else setRuler((r) => [...r, p]);
+      else if (!delMode) setRuler((r) => [...r, p]);
     };
     map.on('click', onClick);
     return () => void map.off('click', onClick);
-  }, [mode, props.measure]);
+  }, [mode, props.measure, delMode]);
 
   // rysowanie pomiaru
   const result = useMemo(() => {
@@ -205,7 +206,7 @@ export function VoyageMap(props: {
     const color = css('--coral');
     if (mode === 'ruler') {
       // linijka: punkty do przeciągania, „+” wstawia punkt pośredni, dotknięcie punktu – usuń
-      drawEditableRoute(layer, ruler, setRuler, { color, dashed: true });
+      drawEditableRoute(layer, ruler, setRuler, { color, dashed: true, deleteMode: delMode });
     } else {
       L.polyline(ll, { color, weight: 3, dashArray: '8 8', interactive: false }).addTo(layer);
       // cel pomiaru „od jachtu” też można przeciągnąć
@@ -223,7 +224,7 @@ export function VoyageMap(props: {
       .setLatLng(last)
       .setContent(`<b>${fmtNm(result.d)}</b>`)
       .addTo(layer);
-  }, [result, mode]);
+  }, [result, mode, delMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fitTrack = () => {
     const map = mapRef.current;
@@ -263,6 +264,7 @@ export function VoyageMap(props: {
                 {result.brg != null && <span> · kurs {fmtCourse(result.brg)}°</span>}
                 {mode === 'boat' && lastSpeed > 0.3 && <span className="muted"> · ~{fmtEta(result.d / lastSpeed)} przy {String(lastSpeed).replace('.', ',')} w</span>}
                 {mode === 'ruler' && <span className="muted"> · {ruler.length} pkt</span>}
+                {mode === 'ruler' && delMode && <span className="danger-text"> · dotknij punktu (×), aby go usunąć</span>}
               </>
             ) : (
               <span className="muted">
@@ -270,7 +272,9 @@ export function VoyageMap(props: {
                   ? boatPos
                     ? 'Dotknij mapy, aby zmierzyć odległość od jachtu'
                     : 'Brak pozycji jachtu – użyj „Moja pozycja”'
-                  : 'Dotykaj kolejnych punktów trasy'}
+                  : delMode
+                    ? 'Tryb usuwania: dotknij punktu (×), aby go usunąć'
+                    : 'Dotykaj kolejnych punktów trasy'}
               </span>
             )}
           </div>
@@ -291,6 +295,11 @@ export function VoyageMap(props: {
             {mode === 'ruler' && ruler.length > 0 && (
               <button className="btn small ghost" onClick={() => setRuler((r) => r.slice(0, -1))}>
                 ↶ Cofnij
+              </button>
+            )}
+            {mode === 'ruler' && (ruler.length > 0 || delMode) && (
+              <button className={`btn small${delMode ? ' danger-on' : ' ghost'}`} onClick={() => setDelMode(!delMode)}>
+                🗑 {delMode ? 'Zakończ usuwanie' : 'Usuwaj punkty'}
               </button>
             )}
             {(target || ruler.length > 0) && (

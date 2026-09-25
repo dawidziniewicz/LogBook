@@ -10,6 +10,8 @@ type Options = {
   halo?: boolean;
   /** zielony start i czerwony koniec */
   ends?: boolean;
+  /** tryb usuwania: dotknięcie punktu od razu go usuwa (bez przeciągania i „+”) */
+  deleteMode?: boolean;
 };
 
 const vertexIcon = (fill: string) =>
@@ -33,8 +35,8 @@ export function drawEditableRoute(layer: L.LayerGroup, pts: Pt[], onChange: (p: 
   }
   const preview = (arr: L.LatLng[]) => lines.forEach((l) => l.setLatLngs(arr));
 
-  // „+” w połowie każdego odcinka – wstawianie punktów pośrednich
-  for (let i = 0; i < ll.length - 1; i++) {
+  // „+” w połowie każdego odcinka – wstawianie punktów pośrednich (poza trybem usuwania)
+  for (let i = 0; !opt.deleteMode && i < ll.length - 1; i++) {
     const mid = L.latLng((ll[i].lat + ll[i + 1].lat) / 2, (ll[i].lng + ll[i + 1].lng) / 2);
     const m = L.marker(mid, { draggable: true, icon: midIcon(), zIndexOffset: -500, title: 'Dodaj punkt' }).addTo(layer);
     m.on('drag', () => {
@@ -54,6 +56,15 @@ export function drawEditableRoute(layer: L.LayerGroup, pts: Pt[], onChange: (p: 
   // punkty trasy – przeciąganie i usuwanie
   ll.forEach((p, i) => {
     const fill = opt.ends && i === 0 ? '#2c8a68' : opt.ends && i === ll.length - 1 && ll.length > 1 ? '#d6546a' : opt.color;
+    if (opt.deleteMode) {
+      const d = L.marker(p, { icon: L.divIcon({ className: 'route-vertex del', html: `<span style="background:${fill}">×</span>`, iconSize: [26, 26], iconAnchor: [13, 13] }) }).addTo(layer);
+      d.on('click', () => {
+        const n = pts.slice();
+        n.splice(i, 1);
+        onChange(n);
+      });
+      return;
+    }
     const m = L.marker(p, { draggable: true, icon: vertexIcon(fill), autoPan: true }).addTo(layer);
     m.on('drag', () => {
       const a = ll.slice();
