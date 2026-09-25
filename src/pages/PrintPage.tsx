@@ -10,7 +10,7 @@ import { getTrack, subscribeTrack } from '../lib/tracker';
 import { voyageLine } from '../lib/voyageTrack';
 import { distanceNm } from '../lib/geo';
 import { buildVoyagePdf, pdfFileName } from '../lib/pdf';
-import { sharePdf } from '../lib/share';
+import { FileActions } from '../components/FileActions';
 import { toast } from '../components/ui';
 
 /** aplikacja z ekranu głównego iPhone'a – tam window.print() nie działa */
@@ -46,9 +46,7 @@ export function PrintPage() {
     <div className="print">
       <div className="no-print row gap print-bar">
         {pdf ? (
-          <button className="btn primary" onClick={() => void sharePdf(pdf)}>
-            📤 Udostępnij / zapisz PDF
-          </button>
+          <FileActions file={pdf} />
         ) : (
           <button
             className="btn primary"
@@ -57,7 +55,7 @@ export function PrintPage() {
               try {
                 const blob = await buildVoyagePdf(v, getTrack(), setStep);
                 setPdf(new File([blob], pdfFileName(v), { type: 'application/pdf' }));
-                toast('PDF gotowy – dotknij „Udostępnij / zapisz PDF”');
+                toast('PDF gotowy – możesz go udostępnić albo zapisać');
               } catch (e) {
                 toast(`Nie udało się utworzyć PDF: ${(e as Error).message}`, 'err', 6000);
               } finally {
@@ -77,7 +75,7 @@ export function PrintPage() {
           ← Wróć
         </a>
       </div>
-      <p className="no-print muted small print-hint">„Utwórz PDF” przygotuje plik z całym dziennikiem i mapą śladu. Potem „Udostępnij / zapisz PDF” – na iPhonie wybierz „Zachowaj w Plikach”, „Drukuj” albo AirDrop. Poniżej podgląd (tabele przewiniesz palcem w bok).</p>
+      <p className="no-print muted small print-hint">„Utwórz PDF” przygotuje plik z całym dziennikiem i mapą śladu. Potem „Udostępnij” (AirDrop, Mail, komunikatory, Drukuj) albo „Zapisz” (plik na dysku / w Plikach). Poniżej podgląd (tabele przewiniesz palcem w bok).</p>
 
       <section className="p-page">
         <h1>DZIENNIK JACHTOWY</h1>

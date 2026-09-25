@@ -8,6 +8,7 @@ import { Card, toast } from '../components/ui';
 import { get as idbGet, set as idbSet } from 'idb-keyval';
 import type { Voyage } from '../types';
 import { ASSET_KINDS } from '../lib/photo';
+import { FileActions } from '../components/FileActions';
 
 const MINUTES = [45, 50, 55, 0, 5, 10, 15];
 const minuteLabel = (m: number) => (m === 0 ? 'o pełnej godzinie (:00)' : m > 30 ? `${60 - m} min przed pełną (:${m})` : `${m} min po pełnej (:${String(m).padStart(2, '0')})`);
@@ -17,6 +18,7 @@ export function SettingsPage() {
   const active = voyages.find((v) => v.id === activeId);
   const fileRef = useRef<HTMLInputElement>(null);
   const [customMin, setCustomMin] = useState(!MINUTES.includes(settings.reminders.minute));
+  const [backup, setBackup] = useState<File>();
   const r = settings.reminders;
   const setR = (fn: (x: typeof r) => void) => setSettings((s) => fn(s.reminders));
 
@@ -25,12 +27,9 @@ export function SettingsPage() {
     const track = (await idbGet(`track:${active.id}`)) ?? [];
     const assets: Record<string, string | undefined> = {};
     for (const k of ASSET_KINDS) assets[k] = await idbGet(`${k}:${active.id}`);
-    const blob = new Blob([JSON.stringify({ app: 'logbook', version: 1, voyage: active, track, ...assets }, null, 2)], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `dziennik-${(active.yachtName || active.name || 'rejs').replace(/\s+/g, '_')}-${dateKey()}.json`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    const name = `dziennik-${(active.yachtName || active.name || 'rejs').replace(/\s+/g, '_')}-${dateKey()}.json`;
+    setBackup(new File([JSON.stringify({ app: 'logbook', version: 1, voyage: active, track, ...assets }, null, 2)], name, { type: 'application/json' }));
+    toast('Kopia gotowa – udostępnij ją albo zapisz');
   };
 
   return (
@@ -184,8 +183,9 @@ export function SettingsPage() {
         <p className="muted small">Dane są zapisywane w pamięci urządzenia i działają offline. Regularnie eksportuj kopię (np. na koniec dnia).</p>
         <div className="row gap wrap">
           <button className="btn" onClick={exportVoyage} disabled={!active}>
-            ⬇️ Eksportuj rejs (JSON)
+            🗂 Przygotuj kopię rejsu (JSON)
           </button>
+          {backup && <FileActions file={backup} />}
           <button className="btn" onClick={() => fileRef.current?.click()}>
             ⬆️ Importuj rejs
           </button>

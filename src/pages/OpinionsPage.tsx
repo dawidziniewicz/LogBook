@@ -4,7 +4,7 @@ import { DEFAULT_CLUB_HEADER, DUTIES, GRADES, RESILIENCE, ROLES, SEASICK, TRAINI
 import { RIGS } from '../data/reference';
 import { buildOpinionsPdf, captainOf, logPorts, logTotals, opinionFileName, opinionTotals, type OpinionImages } from '../lib/opinionPdf';
 import { deleteAsset, loadAsset, resizeImage, saveAsset, type AssetKind } from '../lib/photo';
-import { sharePdf } from '../lib/share';
+import { FileActions } from '../components/FileActions';
 import { getTrack } from '../lib/tracker';
 import { num } from '../lib/compute';
 import { uid } from '../lib/time';
@@ -69,7 +69,7 @@ export function OpinionsPage() {
       const blob = await buildOpinionsPdf(v, members, getTrack(), imgs, (step) => setBusy({ key, step }));
       const file = new File([blob], opinionFileName(v, members.length === 1 ? members[0] : undefined), { type: 'application/pdf' });
       setReady({ key, file });
-      toast('PDF gotowy – dotknij „Udostępnij / zapisz”');
+      toast('PDF gotowy – możesz go udostępnić albo zapisać');
     } catch (e) {
       toast(`Nie udało się utworzyć opinii: ${(e as Error).message}`, 'err', 6000);
     } finally {
@@ -78,9 +78,9 @@ export function OpinionsPage() {
   };
   const PdfButton = ({ k, members, label }: { k: string; members: CrewMember[]; label: string }) =>
     ready?.key === k ? (
-      <button className="btn primary" onClick={() => void sharePdf(ready.file)}>
-        📤 Udostępnij / zapisz
-      </button>
+      <div className="row gap-s wrap">
+        <FileActions file={ready.file} />
+      </div>
     ) : (
       <button className="btn primary" disabled={!!busy} onClick={() => void generate(k, members)}>
         {busy?.key === k ? busy.step : label}
