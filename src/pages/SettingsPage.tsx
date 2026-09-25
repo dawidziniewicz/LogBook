@@ -11,7 +11,7 @@ import { ASSET_KINDS } from '../lib/photo';
 import { FileActions } from '../components/FileActions';
 
 const MINUTES = [45, 50, 55, 0, 5, 10, 15];
-const minuteLabel = (m: number) => (m === 0 ? 'o pełnej godzinie (:00)' : m > 30 ? `${60 - m} min przed pełną (:${m})` : `${m} min po pełnej (:${String(m).padStart(2, '0')})`);
+const minuteLabel = (m: number) => (m === 0 ? 'o pełnej (:00)' : m > 30 ? `${60 - m} min przed (:${m})` : `${m} min po (:${String(m).padStart(2, '0')})`);
 
 /** aplikacja uruchomiona z ekranu głównego iPhone'a/iPada */
 const isIosApp = typeof document !== 'undefined' && document.documentElement.classList.contains('ios-standalone');
@@ -100,20 +100,20 @@ export function SettingsPage() {
             <span className="field-hint">Wiersz dotyczy najbliższej pełnej godziny (np. 13:55 → wiersz 1400).</span>
           </label>
           <label className="field">
-            <span className="field-label">W morzu / na kotwicy – co ile godzin</span>
+            <span className="field-label">W morzu / na kotwicy</span>
             <select value={r.intervalSea} onChange={(e) => setR((x) => void (x.intervalSea = +e.target.value))}>
               {[1, 2, 3, 4].map((n) => <option key={n} value={n}>co {n} h</option>)}
             </select>
           </label>
           <label className="field">
-            <span className="field-label">W porcie – co ile godzin</span>
+            <span className="field-label">W porcie</span>
             <select value={r.intervalPort} onChange={(e) => setR((x) => void (x.intervalPort = +e.target.value))}>
               {[1, 2, 4, 6, 8, 12, 24].map((n) => <option key={n} value={n}>co {n} h</option>)}
             </select>
             <span className="field-hint">Instrukcja: w porcie raz na 4 h.</span>
           </label>
           <label className="field">
-            <span className="field-label">Powtarzaj, dopóki wiersz niekompletny</span>
+            <span className="field-label">Powtarzaj, gdy niekompletny</span>
             <select value={r.repeatMin} onChange={(e) => setR((x) => void (x.repeatMin = +e.target.value))}>
               <option value={0}>nie powtarzaj</option>
               {[5, 10, 15, 20, 30].map((n) => <option key={n} value={n}>co {n} min</option>)}

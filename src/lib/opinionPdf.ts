@@ -9,10 +9,8 @@ import { dateKey } from './time';
 import { fitBox, signatureForPdf } from './signature';
 import logoUrl from '../assets/akz-logo.png';
 
-const NAVY: [number, number, number] = [31, 43, 110];
 const INK: [number, number, number] = [23, 27, 63];
 const MUTED: [number, number, number] = [98, 103, 140];
-const BLUSH: [number, number, number] = [251, 234, 235];
 const PT = 0.3528; // mm na punkt
 
 const dot = (d?: string) => (d ? d.split('-').reverse().join('.') : '');
@@ -111,6 +109,20 @@ export function logDays(v: Voyage) {
 
 export type OpinionTotals = Tally & { tidal: number; days: number };
 
+/** czas rejsu w godzinach z daty i godziny zaokrętowania oraz wyokrętowania (gdy obie godziny podane) */
+export function voyageDurationHours(v: Voyage) {
+  if (!v.embarkDate || !v.disembarkDate || !v.embarkTime || !v.disembarkTime) return undefined;
+  const a = new Date(`${v.embarkDate}T${v.embarkTime}:00`).getTime();
+  const b = new Date(`${v.disembarkDate}T${v.disembarkTime}:00`).getTime();
+  return b > a ? (b - a) / 3_600_000 : undefined;
+}
+
+/** podpowiedź postoju: czas rejsu minus godziny żeglugi */
+export function suggestedStay(v: Voyage, underway: number) {
+  const d = voyageDurationHours(v);
+  return d == null ? undefined : Math.max(0, Math.round(d - underway));
+}
+
 /** zestawienie do opinii: wartości wpisane ręcznie mają pierwszeństwo przed dziennikiem */
 export function opinionTotals(v: Voyage): OpinionTotals {
   const log = logTotals(v);
@@ -121,7 +133,9 @@ export function opinionTotals(v: Voyage): OpinionTotals {
   const engine = pick('engine');
   const total = has('total') ? num(h.total) : has('sail') || has('engine') ? sail + engine : log.total;
   const days = v.opinion?.days?.trim() && !isNaN(num(v.opinion.days)) ? num(v.opinion.days) : logDays(v);
-  return { port: pick('port'), sail, engine, total, above6: pick('above6'), miles: pick('miles'), tidal: has('tidal') ? num(h.tidal) : 0, days };
+  // postój: wpisany ręcznie > z czasu rejsu (zaokrętowanie → wyokrętowanie minus żegluga) > z dziennika
+  const port = has('port') ? num(h.port) : (suggestedStay(v, total) ?? log.port);
+  return { port, sail, engine, total, above6: pick('above6'), miles: pick('miles'), tidal: has('tidal') ? num(h.tidal) : 0, days };
 }
 
 /** dane wspólne dla wszystkich opinii z rejsu */
@@ -155,7 +169,18 @@ type Img = { data: string; w: number; h: number };
 type Assets = { logo?: string; vlogo?: Img; map?: string; photo?: string; sig?: Img };
 
 /** rysuje jedną opinię; zwraca true, gdy treść zmieściła się nad przypisami */
+export const DEFAULT_ACCENT = '#1f2b6e';
+export const DEFAULT_TILE = '#fbeaeb';
+const rgb = (hex: string | undefined, fallback: string): [number, number, number] => {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex ?? '') ?? /^#?([0-9a-f]{6})$/i.exec(fallback)!;
+  const n = parseInt(m[1], 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+};
+
 function drawOpinion(doc: jsPDF, v: Voyage, m: CrewMember, f: ReturnType<typeof voyageFacts>, a: Assets, s: number): boolean {
+  // kolory wybrane w aplikacji (kolor wiodący i kafelków) – przesłaniają domyślne
+  const NAVY = rgb(v.opinion?.accentColor, DEFAULT_ACCENT);
+  const BLUSH = rgb(v.opinion?.tileColor, DEFAULT_TILE);
   const lang: OpinionLang = v.opinion?.lang ?? 'pl';
   const { L, V } = i18n(lang);
   const M = 13;
@@ -330,8 +355,9 @@ function drawOpinion(doc: jsPDF, v: Voyage, m: CrewMember, f: ReturnType<typeof 
   section(L('Informacje o rejsie', 'Cruise information'));
   if (voyageNo) field(L('Na podstawie dziennika jachtowego*, nr pływania', 'Based on Vessel Log Book*, voyage no'), voyageNo);
   const tidal = L('port pływowy ≥ 1,5 m', 'tidal port ≥ 1.5 m');
-  field(L('Port zaokrętowania', 'Port of embarkation'), [v.embarkPort, dot(f.embarkDate), `${tidal}: ${yesNo(v.opinion?.embarkTidal)}`].filter(Boolean).join(', '));
-  field(L('Port wyokrętowania', 'Port of disembarkation'), [v.disembarkPort, dot(f.disembarkDate), `${tidal}: ${yesNo(v.opinion?.disembarkTidal)}`].filter(Boolean).join(', '));
+  const when = (d?: string, tm?: string) => [dot(d), tm].filter(Boolean).join(' ');
+  field(L('Port zaokrętowania', 'Port of embarkation'), [v.embarkPort, when(f.embarkDate, v.embarkTime), `${tidal}: ${yesNo(v.opinion?.embarkTidal)}`].filter(Boolean).join(', '));
+  field(L('Port wyokrętowania', 'Port of disembarkation'), [v.disembarkPort, when(f.disembarkDate, v.disembarkTime), `${tidal}: ${yesNo(v.opinion?.disembarkTidal)}`].filter(Boolean).join(', '));
   field(L('Odwiedzone porty', 'Visited ports'), f.ports.join(', '));
   if (f.tidalPorts.length) field(L('W tym porty pływowe (skok ≥ 1,5 m)', 'Including tidal ports (range ≥ 1.5 m)'), f.tidalPorts.join(', '));
   gap(4);

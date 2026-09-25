@@ -2273,3 +2273,126 @@ html.print-mode .leaflet-tile-pane {
   border-radius: 10px;
   background: var(--primary-50);
 }
+
+/* ===== Równe ułożenie pól w rzędach =====
+   Każde pole w siatce dzieli z sąsiadami wiersze: etykieta / pole / podpowiedź.
+   Dzięki temu pola w jednym rzędzie stoją równo, nawet gdy któraś etykieta ma dwie linie. */
+@supports (grid-template-rows: subgrid) {
+  .grid,
+  .hours-grid {
+    row-gap: 0;
+  }
+  .grid > .field,
+  .hours-grid > .field {
+    display: grid;
+    grid-template-rows: subgrid;
+    grid-row: span 3;
+    row-gap: 5px;
+    align-content: start;
+    margin-bottom: 12px;
+  }
+  .grid > .field.wide,
+  .hours-grid > .field.wide {
+    margin-top: 0;
+  }
+  .grid > .field > .field-label,
+  .hours-grid > .field > .field-label {
+    align-self: end;
+  }
+  .grid > .sig,
+  .grid > :not(.field) {
+    grid-row: span 3;
+    margin-bottom: 12px;
+  }
+}
+
+/* ===== Kolory opinii ===== */
+.color-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.swatch {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid var(--line-strong);
+  cursor: pointer;
+  padding: 0;
+  position: relative;
+}
+.swatch.on {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+}
+.swatch.custom {
+  display: grid;
+  place-items: center;
+  background: conic-gradient(#e44, #fd4, #4d8, #4ae, #a4e, #e44);
+  color: #fff;
+  font-weight: 800;
+  overflow: hidden;
+}
+.swatch.custom input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  min-height: 0;
+  padding: 0;
+}
+.swatch.custom span {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+}
+.color-preview {
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: 12px;
+  background: #fff;
+  color: #171b3f;
+  border: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.cp-title {
+  color: var(--acc);
+  font-size: 1.4rem;
+  border-bottom: 4px solid var(--tile);
+  align-self: flex-start;
+  padding-bottom: 2px;
+}
+.cp-section {
+  color: var(--acc);
+  font-weight: 700;
+  font-size: 0.8rem;
+}
+.cp-tiles {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.cp-tile {
+  background: var(--tile);
+  border-radius: 8px;
+  padding: 8px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+}
+.cp-tile b {
+  color: var(--acc);
+  font-size: 1.1rem;
+}
+.cp-tile small {
+  color: #62678c;
+  font-size: 0.7rem;
+}

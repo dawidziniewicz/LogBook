@@ -107,6 +107,9 @@ export type OpinionSettings = {
   days?: string;
   place?: string;
   issueDate?: string;
+  /** kolor wiodący opinii (tytuł, nagłówki, liczby) i kolor kafelków zestawienia */
+  accentColor?: string;
+  tileColor?: string;
 };
 
 export type YachtData = {
@@ -141,8 +144,11 @@ export type Voyage = {
   vhfCall: string;
   mmsi: string;
   embarkDate: string;
+  /** godzina zaokrętowania HH:MM (opcjonalnie) */
+  embarkTime?: string;
   embarkPort: string;
   disembarkDate: string;
+  disembarkTime?: string;
   disembarkPort: string;
   yacht: YachtData;
   sails: Sail[];

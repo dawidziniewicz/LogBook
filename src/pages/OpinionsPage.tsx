@@ -2,7 +2,20 @@ import { useEffect, useRef, useState } from 'react';
 import { useStore, useVoyage } from '../store';
 import { DEFAULT_CLUB_HEADER, DUTIES, GRADES, RESILIENCE, ROLES, SEASICK, TRAINING_FOR } from '../data/opinion';
 import { RIGS } from '../data/reference';
-import { buildOpinionsPdf, captainOf, logDays, logPorts, logTotals, opinionFileName, opinionTotals, type OpinionImages } from '../lib/opinionPdf';
+import {
+  buildOpinionsPdf,
+  captainOf,
+  DEFAULT_ACCENT,
+  DEFAULT_TILE,
+  logDays,
+  logPorts,
+  logTotals,
+  opinionFileName,
+  opinionTotals,
+  suggestedStay,
+  voyageDurationHours,
+  type OpinionImages,
+} from '../lib/opinionPdf';
 import { dateKey } from '../lib/time';
 import { deleteAsset, loadAsset, resizeImage, saveAsset, type AssetKind } from '../lib/photo';
 import { FileActions } from '../components/FileActions';
@@ -65,6 +78,7 @@ export function OpinionsPage() {
   const totals = opinionTotals(v);
   const cap = captainOf(v);
   const routeMode = op.routeMode ?? 'track';
+  const duration = voyageDurationHours(v);
   const hasTrack = voyageLine(v, getTrack()).length > 1;
 
   const setImg = async (kind: AssetKind, data?: string) => {
@@ -167,8 +181,10 @@ export function OpinionsPage() {
           <Field label="Nr pływania (wg dziennika jachtowego)" value={op.voyageNo} onChange={(x) => setOp({ voyageNo: x })} hint="Jeśli dziennik był prowadzony" />
           <Field label="Port zaokrętowania (nazwa i kraj)" value={v.embarkPort} onChange={(x) => setV((vv) => void (vv.embarkPort = x))} placeholder="np. Split, Chorwacja" />
           <Field label="Data zaokrętowania" type="date" value={v.embarkDate} onChange={(x) => setV((vv) => void (vv.embarkDate = x))} />
+          <Field label="Godzina zaokrętowania" type="time" value={v.embarkTime} onChange={(x) => setV((vv) => void (vv.embarkTime = x))} />
           <Field label="Port wyokrętowania (nazwa i kraj)" value={v.disembarkPort} onChange={(x) => setV((vv) => void (vv.disembarkPort = x))} />
           <Field label="Data wyokrętowania" type="date" value={v.disembarkDate} onChange={(x) => setV((vv) => void (vv.disembarkDate = x))} />
+          <Field label="Godzina wyokrętowania" type="time" value={v.disembarkTime} onChange={(x) => setV((vv) => void (vv.disembarkTime = x))} />
           <Field
             label="Odwiedzone porty (nazwa i kraj)"
             value={op.ports}
@@ -198,7 +214,9 @@ export function OpinionsPage() {
         <div className="hours-grid">
           {HOURS.map((h) => {
             const auto = h.k === 'total' && !op.hours?.total?.trim() && (op.hours?.sail?.trim() || op.hours?.engine?.trim());
-            const base = h.k === 'tidal' ? 0 : log[h.k];
+            // postój: podpowiedź z czasu rejsu (zaokrętowanie → wyokrętowanie) minus żegluga
+            const stay = h.k === 'port' ? suggestedStay(v, totals.total) : undefined;
+            const base = h.k === 'tidal' ? 0 : stay ?? log[h.k];
             return (
               <Field
                 key={h.k}
@@ -212,7 +230,11 @@ export function OpinionsPage() {
           })}
         </div>
         <p className="muted small">
-          Puste pole = wartość z dziennika. „Razem” liczy się samo z żagli i silnika. Na opinii: żagle {fmt(totals.sail)} h · silnik {fmt(totals.engine)} h · razem{' '}
+          Puste pole = podpowiedź (szara). „Razem” liczy się samo z żagli i silnika.{' '}
+          {duration != null
+            ? `Postój = czas rejsu ${fmt(Math.round(duration))} h (zaokrętowanie → wyokrętowanie) minus ${fmt(totals.total)} h żeglugi.`
+            : 'Podaj godziny zaokrętowania i wyokrętowania, a postój policzy się sam.'}{' '}
+          Na opinii: żagle {fmt(totals.sail)} h · silnik {fmt(totals.engine)} h · razem{' '}
           {fmt(totals.total)} h · pływowe {fmt(totals.tidal)} h · postój {fmt(totals.port)} h · {fmt(totals.miles)} Mm · {totals.days} dni.
         </p>
       </Card>
@@ -230,6 +252,30 @@ export function OpinionsPage() {
           <Area label="Nagłówek (klub, adres)" value={op.clubHeader} onChange={(x) => setOp({ clubHeader: x })} rows={3} />
         </div>
         <SignaturePad label="Podpis kapitana (na opiniach)" value={op.signature} onChange={(sig) => setOp({ signature: sig })} />
+      </Card>
+
+      <Card title="Kolory opinii">
+        <div className="color-rows">
+          <ColorChoice
+            label="Kolor wiodący (tytuł, nagłówki, liczby)"
+            value={op.accentColor ?? DEFAULT_ACCENT}
+            presets={ACCENTS}
+            onChange={(c) => setOp({ accentColor: c })}
+          />
+          <ColorChoice label="Kolor kafelków zestawienia" value={op.tileColor ?? DEFAULT_TILE} presets={TILES} onChange={(c) => setOp({ tileColor: c })} />
+        </div>
+        <div className="color-preview" style={{ ['--acc' as string]: op.accentColor ?? DEFAULT_ACCENT, ['--tile' as string]: op.tileColor ?? DEFAULT_TILE }}>
+          <b className="cp-title">OPINIA Z REJSU</b>
+          <span className="cp-section">ZESTAWIENIE REJSU</span>
+          <div className="cp-tiles">
+            {['24 h', '6 h', '120 Mm'].map((x, i) => (
+              <span key={x} className="cp-tile">
+                <b>{x}</b>
+                <small>{['Pod żaglami', 'Na silniku', 'Przebyto'][i]}</small>
+              </span>
+            ))}
+          </div>
+        </div>
       </Card>
 
       <Card title="Grafika na opinii">
@@ -446,6 +492,33 @@ function ImagePicker(props: { label: string; value?: string; onPick: (f: File) =
           }
         }}
       />
+    </div>
+  );
+}
+
+const ACCENTS = ['#1f2b6e', '#3447aa', '#0f5e8c', '#1b6e6a', '#2c6e3f', '#8a1c3b', '#b4532a', '#222222'];
+const TILES = ['#fbeaeb', '#e8ecfa', '#e3f1f8', '#e3f2ec', '#f6eedc', '#f1f1f4', '#fff4d6', '#ffffff'];
+
+function ColorChoice(props: { label: string; value: string; presets: string[]; onChange: (c: string) => void }) {
+  return (
+    <div className="field wide">
+      <span className="field-label">{props.label}</span>
+      <div className="swatches">
+        {props.presets.map((c) => (
+          <button
+            key={c}
+            type="button"
+            className={`swatch${props.value.toLowerCase() === c ? ' on' : ''}`}
+            style={{ background: c }}
+            aria-label={c}
+            onClick={() => props.onChange(c)}
+          />
+        ))}
+        <label className="swatch custom" title="Własny kolor">
+          <input type="color" value={props.value} onChange={(e) => props.onChange(e.target.value)} />
+          <span>＋</span>
+        </label>
+      </div>
     </div>
   );
 }

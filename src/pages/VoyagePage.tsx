@@ -31,8 +31,10 @@ export function VoyagePage() {
           <Field label="Wywoływanie UKF <pseudonim>" value={v.vhfCall} onChange={set('vhfCall')} />
           <Field label="MMSI" value={v.mmsi} onChange={set('mmsi')} inputMode="numeric" />
           <Field label="Zaokrętowanie – data" type="date" value={v.embarkDate} onChange={set('embarkDate')} />
+          <Field label="Zaokrętowanie – godzina" type="time" value={v.embarkTime} onChange={set('embarkTime')} />
           <Field label="Zaokrętowanie – port" value={v.embarkPort} onChange={set('embarkPort')} />
           <Field label="Wyokrętowanie – data" type="date" value={v.disembarkDate} onChange={set('disembarkDate')} />
+          <Field label="Wyokrętowanie – godzina" type="time" value={v.disembarkTime} onChange={set('disembarkTime')} />
           <Field label="Wyokrętowanie – port" value={v.disembarkPort} onChange={set('disembarkPort')} />
         </div>
       </Card>
