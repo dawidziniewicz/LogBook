@@ -41,12 +41,23 @@ function useTheme() {
   }, [theme]);
 }
 
+/** odstęp od góry ustawiony ręcznie (iPhone/iPad z ekranu głównego) */
+function useTopExtra() {
+  const extra = useStore((s) => s.settings.topExtra);
+  useEffect(() => {
+    const root = document.documentElement;
+    if (extra == null) root.style.removeProperty('--top-extra');
+    else root.style.setProperty('--top-extra', `${extra}px`);
+  }, [extra]);
+}
+
 export function App() {
   const hydrated = useStore((s) => s.hydrated);
   const v = useVoyage();
   const route = useRoute();
   const [reminder, setReminder] = useState<ReminderEvent>();
   useTheme();
+  useTopExtra();
 
   useEffect(() => {
     if (!hydrated) return;

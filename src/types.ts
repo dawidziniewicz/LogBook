@@ -169,6 +169,8 @@ export type ReminderSettings = {
 
 export type Settings = {
   theme: 'auto' | 'light' | 'dark' | 'night';
+  /** dodatkowy odstęp od góry w aplikacji z ekranu głównego iOS (px); brak = domyślny */
+  topExtra?: number;
   reminders: ReminderSettings;
   autoWeather: boolean;
   trackAtSea: boolean;

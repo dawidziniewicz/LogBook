@@ -26,16 +26,16 @@
   --shadow: 0 1px 2px rgba(31, 43, 110, 0.06), 0 4px 16px rgba(31, 43, 110, 0.06);
   --radius: 14px;
   --tap: 44px;
-  /* iOS 26: pod paskiem statusu system dokłada rozmyty pas (~40pt) – treść zaczyna się niżej */
-  /* stały zapas 44px (także na iPadzie z niskim paskiem statusu), 0 gdy nie ma wcięcia */
-  --top-safe: calc(env(safe-area-inset-top, 0px) + min(env(safe-area-inset-top, 0px) * 100, 44px));
+  /* nagłówek przechodzi pod pasek statusu; --top-extra = dodatkowy odstęp pod paskiem (iOS: Ustawienia → Wygląd) */
+  --top-extra: 0px;
+  --top-safe: calc(env(safe-area-inset-top, 0px) + var(--top-extra));
   --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
   color-scheme: light;
 }
-/* aplikacja z ekranu głównego iOS/iPadOS: zawsze zapas pod rozmytym pasem systemu */
+/* aplikacja z ekranu głównego iOS/iPadOS: mały zapas pod rozmyciem „Liquid Glass” (do regulacji w Ustawieniach) */
 html.ios-standalone {
-  --top-safe: calc(env(safe-area-inset-top, 0px) + 44px);
+  --top-extra: 12px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -241,7 +241,16 @@ body::before {
   background: var(--surface);
 }
 html.print-mode body::before {
-  background: #fff;
+  background: #1f2b6e; /* biały zegar/bateria iOS muszą być czytelne */
+}
+@media (min-width: 900px) {
+  /* przy bocznym menu pasek pod statusem tylko nad treścią – menu ma własne tło */
+  body::before {
+    left: 250px;
+  }
+  html.print-mode body::before {
+    left: 0;
+  }
 }
 .topbar h1 {
   font-size: 1.15rem;
@@ -2194,4 +2203,11 @@ html.print-mode .leaflet-tile-pane {
   flex-direction: column;
   text-align: center;
   padding: 30px 0;
+}
+
+.top-extra input[type='range'] {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  accent-color: var(--primary);
 }

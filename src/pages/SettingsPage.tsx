@@ -13,6 +13,9 @@ import { FileActions } from '../components/FileActions';
 const MINUTES = [45, 50, 55, 0, 5, 10, 15];
 const minuteLabel = (m: number) => (m === 0 ? 'o pełnej godzinie (:00)' : m > 30 ? `${60 - m} min przed pełną (:${m})` : `${m} min po pełnej (:${String(m).padStart(2, '0')})`);
 
+/** aplikacja uruchomiona z ekranu głównego iPhone'a/iPada */
+const isIosApp = typeof document !== 'undefined' && document.documentElement.classList.contains('ios-standalone');
+
 export function SettingsPage() {
   const { settings, setSettings, voyages, activeId, setActive, createVoyage, deleteVoyage, importVoyage } = useStore();
   const active = voyages.find((v) => v.id === activeId);
@@ -177,6 +180,27 @@ export function SettingsPage() {
           ))}
         </div>
         <p className="muted small">Tryb nocny chroni adaptację wzroku w ciemności na wachcie.</p>
+        {(isIosApp || settings.topExtra != null) && (
+          <div className="field wide top-extra">
+            <span className="field-label">
+              Odstęp od góry (iPhone / iPad): <b>{settings.topExtra ?? 12} pt</b>
+            </span>
+            <input
+              type="range"
+              min={0}
+              max={48}
+              step={2}
+              value={settings.topExtra ?? 12}
+              onChange={(e) => setSettings((s) => void (s.topExtra = +e.target.value))}
+            />
+            <span className="field-hint">
+              Zmniejsz, jeśli nad tytułem jest pusty pasek; zwiększ, jeśli tytuł wpada w rozmycie pod paskiem statusu.{' '}
+              <button className="link" onClick={() => setSettings((s) => void delete s.topExtra)}>
+                domyślnie
+              </button>
+            </span>
+          </div>
+        )}
       </Card>
 
       <Card title="Kopia zapasowa i druk">
