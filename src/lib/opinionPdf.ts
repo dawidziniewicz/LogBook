@@ -376,28 +376,15 @@ function drawOpinion(doc: jsPDF, v: Voyage, m: CrewMember, f: ReturnType<typeof 
   });
   y += 2 * th + 2.5 + 3;
 
-  /* opinia kapitana (PZŻ) */
+  /* opinia kapitana (PZŻ) – sam wynik, pogrubiony */
   widen();
   set(10, true, NAVY);
-  const verdictLabel = `${t(L('Opinia kapitana', "Captain's opinion")).toUpperCase()}**`;
+  const verdictLabel = `${t(L('Opinia kapitana', "Captain's opinion")).toUpperCase()}**: `;
   doc.text(verdictLabel, M, y);
-  let vx = M + doc.getTextWidth(verdictLabel) + 5;
-  const check = (label: string, on: boolean) => {
-    const bs = 3.4 * s;
-    doc.setDrawColor(...INK);
-    doc.setLineWidth(0.3);
-    doc.rect(vx, y - bs + 0.4, bs, bs);
-    if (on) {
-      doc.setLineWidth(0.5);
-      doc.line(vx + 0.6, y - bs + 1, vx + bs - 0.6, y - 0.2);
-      doc.line(vx + bs - 0.6, y - bs + 1, vx + 0.6, y - 0.2);
-    }
-    set(9.5, on, INK);
-    doc.text(t(label), vx + bs + 1.5, y);
-    vx += bs + 1.5 + doc.getTextWidth(t(label)) + 6;
-  };
-  check(L('pozytywna', 'positive'), m.verdict === 'positive');
-  check(L('negatywna', 'negative'), m.verdict === 'negative');
+  const labelW = doc.getTextWidth(verdictLabel);
+  const verdict = m.verdict === 'positive' ? L('pozytywna', 'positive') : m.verdict === 'negative' ? L('negatywna', 'negative') : '—';
+  set(11, true, INK);
+  doc.text(t(verdict).toUpperCase(), M + labelW, y);
   y += lh(10) + 3 * s;
 
   /* skład załogi */
