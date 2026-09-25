@@ -222,34 +222,46 @@ h3 {
     border-bottom: 1px solid var(--line);
   }
 }
-body::before {
-  content: '';
+/*
+ * Pasek pod paskiem statusu iOS (aplikacja z ekranu głównego). Musi być prawdziwym elementem
+ * position: fixed na CAŁĄ szerokość ekranu z jednolitym tłem – wtedy iOS 26 przedłuża jego kolor
+ * pod zegar i baterię zamiast rozmywać przewijaną pod spodem treść.
+ */
+#status-shield {
   position: fixed;
-  inset: 0 0 auto 0;
+  top: 0;
+  left: 0;
+  right: 0;
   height: var(--top-safe);
-  background: var(--primary);
+  background-color: var(--primary);
   pointer-events: none;
   z-index: 1200;
 }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme]) body::before {
-    background: var(--surface);
+  :root:not([data-theme]) #status-shield {
+    background-color: var(--surface);
   }
 }
-:root[data-theme='dark'] body::before,
-:root[data-theme='night'] body::before {
-  background: var(--surface);
+:root[data-theme='dark'] #status-shield,
+:root[data-theme='night'] #status-shield {
+  background-color: var(--surface);
 }
-html.print-mode body::before {
-  background: #1f2b6e; /* biały zegar/bateria iOS muszą być czytelne */
+html.print-mode #status-shield {
+  background-color: #1f2b6e; /* biały zegar/bateria iOS muszą być czytelne */
 }
 @media (min-width: 900px) {
-  /* przy bocznym menu pasek pod statusem tylko nad treścią – menu ma własne tło */
-  body::before {
-    left: 250px;
+  /* z bocznym menu: cała góra ekranu jednym granatowym pasem (menu, pasek statusu i nagłówek) */
+  #status-shield,
+  :root:not([data-theme='night']) #status-shield {
+    background-color: #1f2b6e;
   }
-  html.print-mode body::before {
-    left: 0;
+  :root[data-theme='night'] #status-shield {
+    background-color: var(--surface);
+  }
+  :root:not([data-theme='night']) .topbar {
+    background: #1f2b6e;
+    color: #fff;
+    border-bottom: 0;
   }
 }
 .topbar h1 {
