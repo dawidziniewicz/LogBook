@@ -179,7 +179,7 @@ export function SettingsPage() {
             ⬆️ Importuj rejs
           </button>
           <button className="btn" onClick={() => go('/print')} disabled={!active}>
-            🖨 Drukuj / zapisz PDF
+            📄 Eksport PDF / druk
           </button>
         </div>
         <input

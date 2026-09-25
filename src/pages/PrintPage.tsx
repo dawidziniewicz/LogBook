@@ -9,6 +9,11 @@ import { VoyageMap } from '../components/VoyageMap';
 import { getTrack, subscribeTrack } from '../lib/tracker';
 import { voyageLine } from '../lib/voyageTrack';
 import { distanceNm } from '../lib/geo';
+import { buildVoyagePdf, pdfFileName } from '../lib/pdf';
+import { toast } from '../components/ui';
+
+/** aplikacja z ekranu głównego iPhone'a – tam window.print() nie działa */
+const iosStandalone = (navigator as Navigator & { standalone?: boolean }).standalone === true;
 
 const T: { k: keyof Tally; l: string }[] = [
   { k: 'port', l: 'Na postoju' },
@@ -26,6 +31,8 @@ export function PrintPage() {
   const trackLen = useSyncExternalStore(subscribeTrack, () => getTrack().length);
   const line = useMemo(() => (v ? voyageLine(v, getTrack()) : []), [v, trackLen]); // eslint-disable-line react-hooks/exhaustive-deps
   const [mapReady, setMapReady] = useState(false);
+  const [pdf, setPdf] = useState<File>();
+  const [step, setStep] = useState<string>();
   // biała „kartka” także pod treścią wychodzącą poza ekran (inaczej prześwituje tło motywu)
   useEffect(() => {
     document.documentElement.classList.add('print-mode');
@@ -37,14 +44,39 @@ export function PrintPage() {
   return (
     <div className="print">
       <div className="no-print row gap print-bar">
-        <button className="btn primary" onClick={() => window.print()} disabled={hasTrack && !mapReady}>
-          {hasTrack && !mapReady ? 'Wczytywanie mapy…' : '🖨 Drukuj / zapisz jako PDF'}
-        </button>
+        {pdf ? (
+          <button className="btn primary" onClick={() => void sharePdf(pdf)}>
+            📤 Udostępnij / zapisz PDF
+          </button>
+        ) : (
+          <button
+            className="btn primary"
+            disabled={!!step}
+            onClick={async () => {
+              try {
+                const blob = await buildVoyagePdf(v, getTrack(), setStep);
+                setPdf(new File([blob], pdfFileName(v), { type: 'application/pdf' }));
+                toast('PDF gotowy – dotknij „Udostępnij / zapisz PDF”');
+              } catch (e) {
+                toast(`Nie udało się utworzyć PDF: ${(e as Error).message}`, 'err', 6000);
+              } finally {
+                setStep(undefined);
+              }
+            }}
+          >
+            {step ?? '📄 Utwórz PDF'}
+          </button>
+        )}
+        {!iosStandalone && (
+          <button className="btn" onClick={() => window.print()} disabled={hasTrack && !mapReady}>
+            {hasTrack && !mapReady ? 'Wczytywanie mapy…' : '🖨 Drukuj'}
+          </button>
+        )}
         <a className="btn ghost" href="#/settings">
           ← Wróć
         </a>
       </div>
-      <p className="no-print muted small print-hint">Strona wydruku ma format A4 – tabele przewiniesz palcem w bok. Na iPhonie w oknie druku wybierz „Zapisz w Plikach” lub udostępnij jako PDF.</p>
+      <p className="no-print muted small print-hint">„Utwórz PDF” przygotuje plik z całym dziennikiem i mapą śladu. Potem „Udostępnij / zapisz PDF” – na iPhonie wybierz „Zachowaj w Plikach”, „Drukuj” albo AirDrop. Poniżej podgląd (tabele przewiniesz palcem w bok).</p>
 
       <section className="p-page">
         <h1>DZIENNIK JACHTOWY</h1>
@@ -181,4 +213,22 @@ export function PrintPage() {
       </section>
     </div>
   );
+}
+
+async function sharePdf(file: File) {
+  const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean };
+  if (nav.canShare?.({ files: [file] })) {
+    try {
+      await nav.share({ files: [file], title: file.name });
+      return;
+    } catch (e) {
+      if ((e as Error).name === 'AbortError') return; // użytkownik zamknął okno udostępniania
+    }
+  }
+  // komputer / brak Web Share – zwykłe pobranie pliku
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(file);
+  a.download = file.name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
 }
