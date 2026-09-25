@@ -44,7 +44,13 @@ export function Field(props: {
         />
         {props.after}
         {open && shown.length > 0 && (
-          <span className="suggest-list" role="listbox">
+          <span
+            className="suggest-list"
+            role="listbox"
+            // mousedown nie zabiera fokusu polu (lista nie znika przed kliknięciem);
+            // przeciąganie palcem przewija listę, bo wybór następuje dopiero przy kliknięciu
+            onMouseDown={(e) => e.preventDefault()}
+          >
             {shown.map((o) => (
               <button
                 type="button"
@@ -52,9 +58,8 @@ export function Field(props: {
                 aria-selected={o.toLowerCase() === q}
                 key={o}
                 className={`suggest-item${o.toLowerCase() === q ? ' on' : ''}`}
-                // mousedown/pointerdown przed blur – wybór nie gubi się przy zamykaniu listy
-                onPointerDown={(e) => {
-                  e.preventDefault();
+                // „click” przychodzi tylko przy dotknięciu bez przesuwania – przewijanie niczego nie wybiera
+                onClick={() => {
                   props.onChange(o);
                   setOpen(false);
                 }}

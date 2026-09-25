@@ -2235,6 +2235,9 @@ html.print-mode .leaflet-tile-pane {
   position: relative;
 }
 .suggest-list {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
   position: absolute;
   top: calc(100% + 4px);
   left: 0;
