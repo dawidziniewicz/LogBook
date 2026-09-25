@@ -437,9 +437,8 @@ function drawOpinion(doc: jsPDF, v: Voyage, m: CrewMember, f: ReturnType<typeof 
   /* skład załogi */
   section(L('Skład załogi', 'Crew'));
   set(9.5, true, INK);
-  // kapitan i oficerowie z oznaczeniem funkcji, reszta załogi bez dopisku
-  const FUNC: Record<number, [string, string]> = { 0: ['kapitan', 'captain'], 1: ['I oficer', '1st mate'], 2: ['II oficer', '2nd mate'], 3: ['III oficer', '3rd mate'] };
-  const crewText = f.crew.map((c) => (FUNC[c.rank] ? `${c.name} (${L(...FUNC[c.rank])})` : c.name)).join(', ');
+  // kolejność: kapitan, I–III oficer, reszta załogi (bez dopisków funkcji)
+  const crewText = f.crew.map((c) => c.name).join(', ');
   const crew = doc.splitTextToSize(t(crewText) || '—', W) as string[];
   doc.text(crew, M, y);
   y += lh(9.5) * crew.length + 3 * s;
