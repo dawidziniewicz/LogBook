@@ -1,8 +1,8 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useStore } from '../store';
 import { HOUR_FIELDS, DEFAULT_REQUIRED } from '../data/reference';
 import { beep, nextReminder, requestNotificationPermission, showSystemNotification, unlockAudio } from '../lib/reminders';
-import { hhmm, dateKey } from '../lib/time';
+import { hhmm, dateKey, uid } from '../lib/time';
 import { go } from '../lib/router';
 import { Card, toast } from '../components/ui';
 import { get as idbGet, set as idbSet } from 'idb-keyval';
@@ -22,6 +22,12 @@ export function SettingsPage() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [customMin, setCustomMin] = useState(!MINUTES.includes(settings.reminders.minute));
   const [backup, setBackup] = useState<File>();
+  const [backupInfo, setBackupInfo] = useState<string>();
+  // po zmianie rejsu przygotowana kopia jest nieaktualna
+  useEffect(() => {
+    setBackup(undefined);
+    setBackupInfo(undefined);
+  }, [active]);
   const r = settings.reminders;
   const setR = (fn: (x: typeof r) => void) => setSettings((s) => fn(s.reminders));
 
@@ -31,7 +37,9 @@ export function SettingsPage() {
     const assets: Record<string, string | undefined> = {};
     for (const k of ASSET_KINDS) assets[k] = await idbGet(`${k}:${active.id}`);
     const name = `dziennik-${(active.yachtName || active.name || 'rejs').replace(/\s+/g, '_')}-${dateKey()}.json`;
-    setBackup(new File([JSON.stringify({ app: 'logbook', version: 1, voyage: active, track, ...assets }, null, 2)], name, { type: 'application/json' }));
+    const file = new File([JSON.stringify({ app: 'logbook', version: 1, voyage: active, track, ...assets }, null, 2)], name, { type: 'application/json' });
+    setBackup(file);
+    setBackupInfo(describeBackup(active, track as unknown[], assets, file.size));
     toast('Kopia gotowa – udostępnij ją albo zapisz');
   };
 
@@ -204,12 +212,18 @@ export function SettingsPage() {
       </Card>
 
       <Card title="Kopia zapasowa i druk">
-        <p className="muted small">Dane są zapisywane w pamięci urządzenia i działają offline. Regularnie eksportuj kopię (np. na koniec dnia).</p>
+        <p className="muted small">
+          Dane są zapisywane w pamięci urządzenia i działają offline. Regularnie eksportuj kopię (np. na koniec dnia). Plik kopii zawiera cały rejs: wpisy, podpisy, załogę, opinie, ślad
+          GPS, zdjęcie załogi, zdjęcie trasy i logo rejsu.
+        </p>
         <div className="row gap wrap">
           <button className="btn" onClick={exportVoyage} disabled={!active}>
             🗂 Przygotuj kopię rejsu (JSON)
           </button>
           {backup && <FileActions file={backup} />}
+        </div>
+        {backupInfo && <p className="small backup-info">🗂 {backupInfo}</p>}
+        <div className="row gap wrap" style={{ marginTop: 10 }}>
           <button className="btn" onClick={() => fileRef.current?.click()}>
             ⬆️ Importuj rejs
           </button>
@@ -230,11 +244,14 @@ export function SettingsPage() {
               const j = JSON.parse(await f.text());
               const v = j.voyage as Voyage;
               if (!v?.id || !v.days) throw new Error();
-              importVoyage(v);
-              const id = useStore.getState().activeId!;
-              if (Array.isArray(j.track)) await idbSet(`track:${id}`, j.track);
-              for (const k of ASSET_KINDS) if (typeof j[k] === 'string') await idbSet(`${k}:${id}`, j[k]);
-              toast('Zaimportowano rejs');
+              // najpierw ślad i obrazy (pod docelowym id), dopiero potem przełączenie na rejs –
+              // inaczej aplikacja wczytałaby pusty ślad i brak zdjęć
+              const exists = useStore.getState().voyages.some((x) => x.id === v.id);
+              const final = exists ? { ...v, id: uid(), name: `${v.name} (kopia)` } : v;
+              if (Array.isArray(j.track)) await idbSet(`track:${final.id}`, j.track);
+              for (const k of ASSET_KINDS) if (typeof j[k] === 'string') await idbSet(`${k}:${final.id}`, j[k]);
+              importVoyage(final);
+              toast(`Zaimportowano: ${describeBackup(final, Array.isArray(j.track) ? j.track : [], j, f.size)}`, 'ok', 7000);
             } catch {
               toast('To nie jest poprawny plik dziennika', 'err');
             }
@@ -244,4 +261,23 @@ export function SettingsPage() {
       <p className="muted small center">Dziennik jachtowy · wersja {__APP_VERSION__}</p>
     </div>
   );
+}
+
+/** krótki opis zawartości pliku kopii */
+function describeBackup(v: Voyage, track: unknown[], assets: Record<string, unknown>, size: number) {
+  const days = Object.values(v.days);
+  const sigs =
+    days.reduce((n, d) => n + (d.firstOfficer?.image ? 1 : 0) + (d.captain?.image ? 1 : 0), 0) + (v.opinion?.signature?.image ? 1 : 0);
+  const has = (k: string) => (typeof assets[k] === 'string' ? '✓' : '—');
+  const mb = size / 1024 / 1024;
+  return [
+    `${days.length} dni`,
+    `${v.crew.length} os. załogi`,
+    `${sigs} podpis${sigs === 1 ? '' : sigs < 5 && sigs > 1 ? 'y' : 'ów'}`,
+    `ślad ${track.length} pkt`,
+    `zdjęcie załogi ${has('photo')}`,
+    `zdjęcie trasy ${has('route')}`,
+    `logo rejsu ${has('vlogo')}`,
+    mb >= 1 ? `${mb.toFixed(1).replace('.', ',')} MB` : `${Math.max(1, Math.round(size / 1024))} kB`,
+  ].join(' · ');
 }

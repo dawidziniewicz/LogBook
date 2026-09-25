@@ -1611,7 +1611,13 @@ h3.group {
 .crew-item {
   border: 1px solid var(--line);
   border-radius: 12px;
-  overflow: hidden;
+  /* bez overflow: hidden – lista podpowiedzi musi móc wystawać poza kartę */
+}
+.crew-item > .crew-head {
+  border-radius: 11px;
+}
+.crew-item.open > .crew-head {
+  border-radius: 11px 11px 0 0;
 }
 .crew-item.open {
   border-color: var(--primary);
@@ -2222,4 +2228,48 @@ html.print-mode .leaflet-tile-pane {
   padding: 0;
   border: 0;
   accent-color: var(--primary);
+}
+
+/* ===== Podpowiedzi pod polem ===== */
+.suggest-row {
+  position: relative;
+}
+.suggest-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  max-height: 260px;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  box-shadow: 0 10px 28px rgba(15, 18, 48, 0.18);
+  padding: 4px;
+}
+.suggest-item {
+  text-align: left;
+  border: 0;
+  background: transparent;
+  padding: 11px 12px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  min-height: 44px;
+}
+.suggest-item:hover,
+.suggest-item.on {
+  background: var(--primary-50);
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.backup-info {
+  margin: 10px 0 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--primary-50);
 }

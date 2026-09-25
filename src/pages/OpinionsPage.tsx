@@ -220,7 +220,7 @@ export function OpinionsPage() {
       <Card title="Kapitan i uwagi">
         <div className="grid">
           <Field label="Kapitan" value={v.card.captain} onChange={(x) => setV((vv) => void (vv.card.captain = x))} placeholder={cap ? `${cap.firstName} ${cap.lastName}` : ''} />
-          <Field label="Stopień żeglarski kapitana" value={v.card.grade} onChange={(x) => setV((vv) => void (vv.card.grade = x))} placeholder={cap?.grade} list="grades" />
+          <Field label="Stopień żeglarski kapitana" value={v.card.grade} onChange={(x) => setV((vv) => void (vv.card.grade = x))} placeholder={cap?.grade} suggestions={GRADES} />
           <Field label="Nr patentu kapitana" value={v.card.patent} onChange={(x) => setV((vv) => void (vv.card.patent = x))} placeholder={cap?.patent} />
           <Field label="Telefon" type="tel" value={v.card.phone} onChange={(x) => setV((vv) => void (vv.card.phone = x))} placeholder={cap?.phone} />
           <Field label="E-mail" type="email" value={v.card.email} onChange={(x) => setV((vv) => void (vv.card.email = x))} placeholder={cap?.email} />
@@ -346,9 +346,9 @@ export function OpinionsPage() {
                     <div className="grid">
                       <Field label="Imię" value={m.firstName} onChange={(x) => setM(i, { firstName: x })} />
                       <Field label="Nazwisko" value={m.lastName} onChange={(x) => setM(i, { lastName: x })} />
-                      <Field label="Stopień żeglarski" value={m.grade} onChange={(x) => setM(i, { grade: x })} list="grades" />
+                      <Field label="Stopień żeglarski" value={m.grade} onChange={(x) => setM(i, { grade: x })} suggestions={GRADES} />
                       <Field label="Numer patentu" value={m.patent} onChange={(x) => setM(i, { patent: x })} />
-                      <Field label="Pełniona funkcja" value={m.role} onChange={(x) => setM(i, { role: x })} list="roles-op" />
+                      <Field label="Pełniona funkcja" value={m.role} onChange={(x) => setM(i, { role: x })} suggestions={ROLES} />
                       <Field label="Telefon" type="tel" value={m.phone} onChange={(x) => setM(i, { phone: x })} />
                       <Field label="E-mail" type="email" value={m.email} onChange={(x) => setM(i, { email: x })} />
                     </div>
@@ -394,16 +394,6 @@ export function OpinionsPage() {
             );
           })}
         </ul>
-        <datalist id="grades">
-          {GRADES.map((g) => (
-            <option key={g} value={g} />
-          ))}
-        </datalist>
-        <datalist id="roles-op">
-          {ROLES.map((r) => (
-            <option key={r} value={r} />
-          ))}
-        </datalist>
       </Card>
     </div>
   );

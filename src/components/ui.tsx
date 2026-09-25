@@ -10,26 +10,60 @@ export function Field(props: {
   placeholder?: string;
   hint?: ReactNode;
   auto?: boolean;
-  list?: string;
+  /** podpowiedzi rozwijane pod polem (działają też na iOS, w odróżnieniu od <datalist>) */
+  suggestions?: string[];
   wide?: boolean;
   after?: ReactNode;
 }) {
+  const [open, setOpen] = useState(false);
+  const value = props.value ?? '';
+  const q = value.trim().toLowerCase();
+  const exact = props.suggestions?.some((o) => o.toLowerCase() === q);
+  // pełna lista, gdy pole puste albo zawiera już jedną z podpowiedzi; w innym razie – pasujące
+  const shown = (props.suggestions ?? []).filter((o) => !q || exact || o.toLowerCase().includes(q));
   return (
     <label className={`field${props.wide ? ' wide' : ''}${props.auto ? ' is-auto' : ''}`}>
       <span className="field-label">
         {props.label}
         {props.auto && <span className="auto-tag" title="Wypełnione automatycznie – sprawdź">auto</span>}
       </span>
-      <span className="field-row">
+      <span className="field-row suggest-row">
         <input
           type={props.type ?? 'text'}
           inputMode={props.inputMode}
-          value={props.value ?? ''}
+          value={value}
           placeholder={props.placeholder}
-          list={props.list}
-          onChange={(e) => props.onChange(e.target.value)}
+          autoComplete={props.suggestions ? 'off' : undefined}
+          onChange={(e) => {
+            props.onChange(e.target.value);
+            setOpen(true);
+          }}
+          onFocus={() => props.suggestions && setOpen(true)}
+          onBlur={() => setTimeout(() => setOpen(false), 150)}
+          onKeyDown={(e) => e.key === 'Escape' && setOpen(false)}
         />
         {props.after}
+        {open && shown.length > 0 && (
+          <span className="suggest-list" role="listbox">
+            {shown.map((o) => (
+              <button
+                type="button"
+                role="option"
+                aria-selected={o.toLowerCase() === q}
+                key={o}
+                className={`suggest-item${o.toLowerCase() === q ? ' on' : ''}`}
+                // mousedown/pointerdown przed blur – wybór nie gubi się przy zamykaniu listy
+                onPointerDown={(e) => {
+                  e.preventDefault();
+                  props.onChange(o);
+                  setOpen(false);
+                }}
+              >
+                {o}
+              </button>
+            ))}
+          </span>
+        )}
       </span>
       {props.hint && <span className="field-hint">{props.hint}</span>}
     </label>

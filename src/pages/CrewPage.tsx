@@ -70,7 +70,7 @@ export function CrewPage() {
                     <div className="grid">
                       <Field label="Imię" value={c.firstName} onChange={upd('firstName')} />
                       <Field label="Nazwisko" value={c.lastName} onChange={upd('lastName')} />
-                      <Field label="Funkcja na jachcie" value={c.role} onChange={upd('role')} list="roles" />
+                      <Field label="Funkcja na jachcie" value={c.role} onChange={upd('role')} suggestions={ROLES} />
                       <label className="field">
                         <span className="field-label">Wachta</span>
                         <select value={c.watch} onChange={(e) => upd('watch')(e.target.value)}>
@@ -80,7 +80,7 @@ export function CrewPage() {
                           <option value="III">III</option>
                         </select>
                       </label>
-                      <Field label="Stopień żeglarski" value={c.grade} onChange={upd('grade')} list="grades-crew" />
+                      <Field label="Stopień żeglarski" value={c.grade} onChange={upd('grade')} suggestions={GRADES} />
                       <Field label="Numer patentu" value={c.patent} onChange={upd('patent')} />
                       <Field label="Narodowość" value={c.nationality} onChange={upd('nationality')} />
                       <Field label="Nr dokumentu (paszport/ID)" value={c.docNo} onChange={upd('docNo')} />
@@ -106,16 +106,6 @@ export function CrewPage() {
             );
           })}
         </ul>
-        <datalist id="grades-crew">
-          {GRADES.map((g) => (
-            <option key={g} value={g} />
-          ))}
-        </datalist>
-        <datalist id="roles">
-          {ROLES.map((r) => (
-            <option key={r} value={r} />
-          ))}
-        </datalist>
       </Card>
 
       <Card title="Wachty">

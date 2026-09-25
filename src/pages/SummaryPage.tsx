@@ -3,6 +3,7 @@ import { useStore, useVoyage } from '../store';
 import { allTallies, sortedDays } from '../lib/compute';
 import { fmtDate } from '../lib/time';
 import { Card, Field, Stat } from '../components/ui';
+import { GRADES } from '../data/opinion';
 import { VoyageMap } from '../components/VoyageMap';
 
 const c = (n: number) => String(n).replace('.', ',');
@@ -31,7 +32,7 @@ export function SummaryPage() {
         </div>
         <div className="grid">
           <Field label="Kapitan jachtu" value={v.card.captain || (captain ? `${captain.firstName} ${captain.lastName}` : '')} onChange={setCard('captain')} />
-          <Field label="Stopień żeglarski" value={v.card.grade || captain?.grade} onChange={setCard('grade')} />
+          <Field label="Stopień żeglarski" value={v.card.grade || captain?.grade} onChange={setCard('grade')} suggestions={GRADES} />
           <Field label="Nr patentu" value={v.card.patent || captain?.patent} onChange={setCard('patent')} />
           <Field label="Telefon" value={v.card.phone || captain?.phone} onChange={setCard('phone')} type="tel" />
           <Field label="E-mail" value={v.card.email} onChange={setCard('email')} type="email" />
