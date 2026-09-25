@@ -49,7 +49,7 @@ function loadTile(url: string): Promise<HTMLImageElement | null> {
 }
 
 /** mapa śladu jako obraz; `custom` = trasa narysowana ręcznie zamiast śladu z dziennika */
-export async function renderTrackImage(v: Voyage, track: Fix[], W = 1100, H = 820, custom?: { lat: number; lon: number }[]) {
+export async function renderTrackImage(v: Voyage, track: Fix[], W = 1100, H = 820, custom?: { lat: number; lon: number }[], credit = true) {
   const line = custom ?? voyageLine(v, track);
   const wps = custom ? [] : logWaypoints(v);
   const pts = [...line, ...wps];
@@ -124,13 +124,15 @@ export async function renderTrackImage(v: Voyage, track: Fix[], W = 1100, H = 82
     dot(line[0], 9, '#2c8a68');
     dot(line[line.length - 1], 11, '#d6546a');
   }
-  ctx.font = '16px sans-serif';
-  const credit = '© OpenStreetMap · © OpenSeaMap';
-  const cw = ctx.measureText(credit).width;
-  ctx.fillStyle = 'rgba(255,255,255,0.8)';
-  ctx.fillRect(W - cw - 16, H - 28, cw + 16, 28);
-  ctx.fillStyle = '#333';
-  ctx.fillText(credit, W - cw - 8, H - 9);
+  if (credit) {
+    ctx.font = '16px sans-serif';
+    const creditText = '© OpenStreetMap · © OpenSeaMap';
+    const cw = ctx.measureText(creditText).width;
+    ctx.fillStyle = 'rgba(255,255,255,0.8)';
+    ctx.fillRect(W - cw - 16, H - 28, cw + 16, 28);
+    ctx.fillStyle = '#333';
+    ctx.fillText(creditText, W - cw - 8, H - 9);
+  }
 
   let length = 0;
   for (let i = 1; i < line.length; i++) length += distanceNm(line[i - 1], line[i]);

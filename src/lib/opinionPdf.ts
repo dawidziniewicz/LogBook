@@ -474,9 +474,9 @@ export async function buildOpinionsPdf(v: Voyage, members: CrewMember[], track: 
     mode === 'image' && imgs.route
       ? containToRatio(imgs.route, 1.46).catch(() => undefined)
       : mode === 'track'
-        ? renderTrackImage(v, track, 876, 600).then((r) => r?.dataUrl).catch(() => undefined)
+        ? renderTrackImage(v, track, 876, 600, undefined, false).then((r) => r?.dataUrl).catch(() => undefined)
         : mode === 'drawn' && (v.opinion?.drawnRoute?.length ?? 0) > 1
-          ? renderTrackImage(v, [], 876, 600, v.opinion!.drawnRoute).then((r) => r?.dataUrl).catch(() => undefined)
+          ? renderTrackImage(v, [], 876, 600, v.opinion!.drawnRoute, false).then((r) => r?.dataUrl).catch(() => undefined)
           : Promise.resolve(undefined);
   const [logo, map, photo, vlogoSize] = await Promise.all([
     v.opinion?.akzLogo === false ? Promise.resolve(undefined) : toDataUrl(logoUrl).catch(() => undefined),

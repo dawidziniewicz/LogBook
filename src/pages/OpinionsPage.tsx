@@ -6,6 +6,7 @@ import { buildOpinionsPdf, captainOf, logDays, logPorts, logTotals, opinionFileN
 import { dateKey } from '../lib/time';
 import { deleteAsset, loadAsset, resizeImage, saveAsset, type AssetKind } from '../lib/photo';
 import { FileActions } from '../components/FileActions';
+import { PdfPreview } from '../components/PdfPreview';
 import { getTrack } from '../lib/tracker';
 import { voyageLine } from '../lib/voyageTrack';
 import { RouteDrawer } from '../components/RouteDrawer';
@@ -45,6 +46,7 @@ export function OpinionsPage() {
   const [open, setOpen] = useState<string>();
   const [busy, setBusy] = useState<{ key: string; step: string }>();
   const [ready, setReady] = useState<{ key: string; file: File }>();
+  const [preview, setPreview] = useState(false);
 
   useEffect(() => {
     if (!v) return;
@@ -79,7 +81,7 @@ export function OpinionsPage() {
       const blob = await buildOpinionsPdf(v, members, getTrack(), imgs, (step) => setBusy({ key, step }));
       const file = new File([blob], opinionFileName(v, members.length === 1 ? members[0] : undefined), { type: 'application/pdf' });
       setReady({ key, file });
-      toast('PDF gotowy – możesz go udostępnić albo zapisać');
+      setPreview(true);
     } catch (e) {
       toast(`Nie udało się utworzyć opinii: ${(e as Error).message}`, 'err', 6000);
     } finally {
@@ -89,6 +91,9 @@ export function OpinionsPage() {
   const PdfButton = ({ k, members, label }: { k: string; members: CrewMember[]; label: string }) =>
     ready?.key === k ? (
       <div className="row gap-s wrap">
+        <button className="btn" onClick={() => setPreview(true)}>
+          👁 Podgląd
+        </button>
         <FileActions file={ready.file} />
       </div>
     ) : (
@@ -99,6 +104,13 @@ export function OpinionsPage() {
 
   return (
     <div className="page">
+      {preview && ready && (
+        <PdfPreview
+          file={ready.file}
+          title={ready.key === 'all' ? `Podgląd – wszystkie opinie (${v.crew.length})` : `Podgląd – ${ready.file.name.replace(/\.pdf$/, '').replace(/_/g, ' ')}`}
+          onClose={() => setPreview(false)}
+        />
+      )}
       <Card title="Opinie z rejsu" actions={<PdfButton k="all" members={v.crew} label={`📄 Wszystkie opinie (${v.crew.length})`} />}>
         <div className="field wide">
           <span className="field-label">Język opinii</span>
