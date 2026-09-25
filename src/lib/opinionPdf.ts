@@ -1,6 +1,6 @@
 import type { jsPDF } from 'jspdf';
 import type { CrewMember, OpinionLang, Tally, Voyage } from '../types';
-import { DEFAULT_CLUB_HEADER } from '../data/opinion';
+import { DEFAULT_CLUB_HEADER, gradeRank, noGrade, roleRank } from '../data/opinion';
 import { allTallies, num, sortedDays } from './compute';
 import type { Fix } from './geo';
 import { newPdfDoc, pdfText as t, renderTrackImage } from './pdf';
@@ -43,6 +43,7 @@ const VALUES_EN: Record<string, string> = {
   dobra: 'Good',
   średnia: 'Average',
   słaba: 'Poor',
+  'nie wystąpiły trudne warunki': 'No hard conditions encountered',
   'sternika jachtowego': 'Yacht Skipper',
   'jachtowego sternika morskiego': 'Offshore Yacht Skipper',
   'kapitana jachtowego': 'Yacht Captain',
@@ -138,6 +139,21 @@ export function opinionTotals(v: Voyage): OpinionTotals {
   return { port, sail, engine, total, above6: pick('above6'), miles: pick('miles'), tidal: has('tidal') ? num(h.tidal) : 0, days };
 }
 
+/**
+ * Skład załogi do opinii: z kapitanem (także gdy jest wpisany tylko w danych kapitana),
+ * od najwyższej funkcji (kapitan, I–III oficer, …), a w ramach funkcji od najwyższego stopnia.
+ */
+function crewInOrder(v: Voyage) {
+  const list = v.crew
+    .map((m, i) => ({ name: `${m.firstName} ${m.lastName}`.trim(), rank: roleRank(m.role), grade: gradeRank(m.grade), i }))
+    .filter((c) => c.name);
+  const capName = v.card.captain?.trim();
+  if (capName && !list.some((c) => c.rank === 0) && !list.some((c) => c.name.toLowerCase() === capName.toLowerCase())) {
+    list.push({ name: capName, rank: 0, grade: gradeRank(v.card.grade ?? ''), i: -1 });
+  }
+  return list.sort((a, b) => a.rank - b.rank || a.grade - b.grade || a.i - b.i);
+}
+
 /** dane wspólne dla wszystkich opinii z rejsu */
 function voyageFacts(v: Voyage) {
   const days = sortedDays(v);
@@ -152,7 +168,7 @@ function voyageFacts(v: Voyage) {
     tidalPorts,
     tidalCount: tidalPorts.length || (num(v.card.tidalPorts) || 0),
     sailArea: v.opinion?.sailArea || (sailSum ? c(+sailSum.toFixed(1)) : ''),
-    crewNames: v.crew.map((m) => `${m.firstName} ${m.lastName}`.trim()).filter(Boolean),
+    crew: crewInOrder(v),
     captain: {
       name: v.card.captain || (cap ? `${cap.firstName} ${cap.lastName}` : ''),
       grade: v.card.grade || cap?.grade || '',
@@ -328,7 +344,7 @@ function drawOpinion(doc: jsPDF, v: Voyage, m: CrewMember, f: ReturnType<typeof 
   /* uczestnik rejsu */
   section(L('Informacje o uczestniku rejsu', 'Cruise participant'));
   set(11, true, INK);
-  const who = [`${lang === 'en' ? '' : 'Kol. '}${m.firstName} ${m.lastName}`.trim(), V(m.grade), m.patent && `${L('nr pat.', 'cert. no.')} ${m.patent}`]
+  const who = [`${lang === 'en' ? '' : 'Kol. '}${m.firstName} ${m.lastName}`.trim(), noGrade(m.grade) ? '' : V(m.grade), m.patent && `${L('nr pat.', 'cert. no.')} ${m.patent}`]
     .map((x) => t(x || ''))
     .filter(Boolean)
     .join(', ');
@@ -421,7 +437,10 @@ function drawOpinion(doc: jsPDF, v: Voyage, m: CrewMember, f: ReturnType<typeof 
   /* skład załogi */
   section(L('Skład załogi', 'Crew'));
   set(9.5, true, INK);
-  const crew = doc.splitTextToSize(t(f.crewNames.join(', ')) || '—', W) as string[];
+  // kapitan i oficerowie z oznaczeniem funkcji, reszta załogi bez dopisku
+  const FUNC: Record<number, [string, string]> = { 0: ['kapitan', 'captain'], 1: ['I oficer', '1st mate'], 2: ['II oficer', '2nd mate'], 3: ['III oficer', '3rd mate'] };
+  const crewText = f.crew.map((c) => (FUNC[c.rank] ? `${c.name} (${L(...FUNC[c.rank])})` : c.name)).join(', ');
+  const crew = doc.splitTextToSize(t(crewText) || '—', W) as string[];
   doc.text(crew, M, y);
   y += lh(9.5) * crew.length + 3 * s;
 
@@ -440,7 +459,7 @@ function drawOpinion(doc: jsPDF, v: Voyage, m: CrewMember, f: ReturnType<typeof 
   const cp = f.captain;
   const cap = [
     cp.name,
-    V(cp.grade),
+    noGrade(cp.grade) ? '' : V(cp.grade),
     cp.patent && `${L('nr pat.', 'cert. no.')} ${cp.patent}`,
     cp.phone && `${L('tel.', 'phone')} ${cp.phone}`,
     cp.email && `e-mail: ${cp.email}`,
