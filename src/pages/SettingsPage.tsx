@@ -7,6 +7,7 @@ import { go } from '../lib/router';
 import { Card, toast } from '../components/ui';
 import { get as idbGet, set as idbSet } from 'idb-keyval';
 import type { Voyage } from '../types';
+import { ASSET_KINDS } from '../lib/photo';
 
 const MINUTES = [45, 50, 55, 0, 5, 10, 15];
 const minuteLabel = (m: number) => (m === 0 ? 'o pełnej godzinie (:00)' : m > 30 ? `${60 - m} min przed pełną (:${m})` : `${m} min po pełnej (:${String(m).padStart(2, '0')})`);
@@ -22,8 +23,9 @@ export function SettingsPage() {
   const exportVoyage = async () => {
     if (!active) return;
     const track = (await idbGet(`track:${active.id}`)) ?? [];
-    const photo = await idbGet(`photo:${active.id}`);
-    const blob = new Blob([JSON.stringify({ app: 'logbook', version: 1, voyage: active, track, photo }, null, 2)], { type: 'application/json' });
+    const assets: Record<string, string | undefined> = {};
+    for (const k of ASSET_KINDS) assets[k] = await idbGet(`${k}:${active.id}`);
+    const blob = new Blob([JSON.stringify({ app: 'logbook', version: 1, voyage: active, track, ...assets }, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = `dziennik-${(active.yachtName || active.name || 'rejs').replace(/\s+/g, '_')}-${dateKey()}.json`;
@@ -33,7 +35,15 @@ export function SettingsPage() {
 
   return (
     <div className="page">
-      <Card title="Rejsy" actions={<button className="btn small" onClick={() => { createVoyage(); go('/voyage'); }}>+ Nowy rejs</button>}>
+      <Card
+        title="Rejsy"
+        actions={
+          <div className="row gap-s wrap">
+            <button className="btn small ghost" onClick={() => { createVoyage(); go('/opinions'); }}>+ Tylko opinie</button>
+            <button className="btn small" onClick={() => { createVoyage(); go('/voyage'); }}>+ Nowy rejs</button>
+          </div>
+        }
+      >
         <ul className="voyages">
           {voyages.map((v) => (
             <li key={v.id} className={v.id === activeId ? 'on' : ''}>
@@ -199,7 +209,7 @@ export function SettingsPage() {
               importVoyage(v);
               const id = useStore.getState().activeId!;
               if (Array.isArray(j.track)) await idbSet(`track:${id}`, j.track);
-              if (typeof j.photo === 'string') await idbSet(`photo:${id}`, j.photo);
+              for (const k of ASSET_KINDS) if (typeof j[k] === 'string') await idbSet(`${k}:${id}`, j[k]);
               toast('Zaimportowano rejs');
             } catch {
               toast('To nie jest poprawny plik dziennika', 'err');

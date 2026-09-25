@@ -174,6 +174,15 @@ function Welcome() {
       >
         + Rozpocznij nowy rejs
       </button>
+      <button
+        className="btn big"
+        onClick={() => {
+          createVoyage();
+          go('/opinions');
+        }}
+      >
+        📝 Tylko opinie z rejsu
+      </button>
       <p className="muted small">Dane są przechowywane wyłącznie na tym urządzeniu. Kopię zapasową zrobisz w Ustawieniach.</p>
       <Toasts />
     </div>

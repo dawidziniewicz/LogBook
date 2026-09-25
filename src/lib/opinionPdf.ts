@@ -1,10 +1,10 @@
 import type { jsPDF } from 'jspdf';
-import type { CrewMember, Voyage } from '../types';
+import type { CrewMember, Tally, Voyage } from '../types';
 import { DEFAULT_CLUB_HEADER } from '../data/opinion';
 import { allTallies, num, sortedDays } from './compute';
 import type { Fix } from './geo';
 import { newPdfDoc, pdfText as t, renderTrackImage } from './pdf';
-import { cropToRatio } from './photo';
+import { containToRatio, cropToRatio, imageSize } from './photo';
 import logoUrl from '../assets/akz-logo.png';
 
 const NAVY: [number, number, number] = [31, 43, 110];
@@ -27,12 +27,35 @@ async function toDataUrl(url: string) {
 
 export const captainOf = (v: Voyage) => v.crew.find((m) => /kapitan/i.test(m.role));
 
+const ZERO: Tally = { port: 0, sail: 0, engine: 0, total: 0, above6: 0, miles: 0 };
+
+/** zestawienie z dziennika (bez ręcznych poprawek) */
+export function logTotals(v: Voyage): Tally {
+  const days = sortedDays(v);
+  return days.length ? allTallies(v)[days[days.length - 1]].total : ZERO;
+}
+export function logPorts(v: Voyage) {
+  const days = sortedDays(v);
+  return [...new Set(days.flatMap((d) => [v.days[d].portOut, v.days[d].portStay, v.days[d].portIn]).flatMap((p) => (p ? p.split(',') : [])).map((p) => p.trim()).filter(Boolean))];
+}
+
+/** zestawienie do opinii: wartości wpisane ręcznie mają pierwszeństwo przed dziennikiem */
+export function opinionTotals(v: Voyage): Tally {
+  const log = logTotals(v);
+  const h = v.opinion?.hours ?? {};
+  const pick = (k: keyof Tally) => (h[k]?.trim() && !isNaN(num(h[k])) ? num(h[k]) : log[k]);
+  const sail = pick('sail');
+  const engine = pick('engine');
+  const total = h.total?.trim() && !isNaN(num(h.total)) ? num(h.total) : h.sail?.trim() || h.engine?.trim() ? sail + engine : log.total;
+  return { port: pick('port'), sail, engine, total, above6: pick('above6'), miles: pick('miles') };
+}
+
 /** dane wspólne dla wszystkich opinii z rejsu */
 function voyageFacts(v: Voyage) {
   const days = sortedDays(v);
-  const tallies = allTallies(v);
-  const total = days.length ? tallies[days[days.length - 1]].total : undefined;
-  const ports = [...new Set(days.flatMap((d) => [v.days[d].portOut, v.days[d].portStay, v.days[d].portIn]).flatMap((p) => (p ? p.split(',') : [])).map((p) => p.trim()).filter(Boolean))];
+  const total = opinionTotals(v);
+  const manualPorts = v.opinion?.ports?.split(',').map((p) => p.trim()).filter(Boolean);
+  const ports = manualPorts?.length ? manualPorts : logPorts(v);
   const sailSum = v.sails.reduce((s, x) => s + (isNaN(num(x.area)) ? 0 : num(x.area)), 0);
   const cap = captainOf(v);
   const captain = {
@@ -52,7 +75,7 @@ function voyageFacts(v: Voyage) {
   };
 }
 
-type Assets = { logo?: string; map?: string; photo?: string };
+type Assets = { logo?: string; vlogo?: { data: string; w: number; h: number }; map?: string; photo?: string };
 
 function drawOpinion(doc: jsPDF, v: Voyage, m: CrewMember, f: ReturnType<typeof voyageFacts>, a: Assets, s: number) {
   const M = 13;
@@ -66,15 +89,36 @@ function drawOpinion(doc: jsPDF, v: Voyage, m: CrewMember, f: ReturnType<typeof 
   };
   const lh = (size: number) => size * s * PT * 1.32;
 
-  /* nagłówek klubu */
-  if (a.logo) doc.addImage(a.logo, 'PNG', M, 10, 17, 17.6);
-  set(9.5, false, INK);
-  const club = (v.opinion?.clubHeader || DEFAULT_CLUB_HEADER).split('\n').map((l) => t(l)).filter(Boolean);
-  club.forEach((l, i) => doc.text(l, M + 20, 14 + i * 4.3));
-
-  /* prawa kolumna: mapa śladu i zdjęcie załogi */
+  /* prawa kolumna: trasa i zdjęcie załogi */
   const RX = 115;
   const RW = PW - M - RX;
+  const hasRight = !!(a.map || a.photo);
+
+  /* nagłówek: logo AKŻ, klub, logo rejsu */
+  if (a.logo) doc.addImage(a.logo, 'PNG', M, 9, 18, 18.6);
+  const clubX = a.logo ? M + 21 : M;
+  let vlogoX = PW - M;
+  if (a.vlogo) {
+    const box = 23;
+    const k = Math.min(box / a.vlogo.w, box / a.vlogo.h);
+    const w = a.vlogo.w * k;
+    const h = a.vlogo.h * k;
+    vlogoX = (hasRight ? RX - 4 : PW - M) - w;
+    doc.addImage(a.vlogo.data, a.vlogo.data.startsWith('data:image/png') ? 'PNG' : 'JPEG', vlogoX, 9 + (box - h) / 2, w, h);
+  }
+  const clubW = (a.vlogo ? vlogoX - 2 : hasRight ? RX - 4 : PW - M) - clubX;
+  const clubLines = (v.opinion?.clubHeader || DEFAULT_CLUB_HEADER).split('\n').map((l) => t(l)).filter(Boolean);
+  // mniejsza czcionka zamiast łamania nazwy klubu (do 7,5 pt), dopiero potem zawijanie
+  let clubSize = 9.5;
+  set(clubSize, false, INK);
+  while (clubSize > 7.5 && Math.max(0, ...clubLines.map((l) => doc.getTextWidth(l))) > clubW) {
+    clubSize -= 0.25;
+    set(clubSize, false, INK);
+  }
+  const club = clubLines.flatMap((l) => doc.splitTextToSize(l, clubW) as string[]).slice(0, 5);
+  const clubLh = clubSize * s * PT * 1.3;
+  club.forEach((l, i) => doc.text(l, clubX, 13.5 + i * clubLh));
+
   let ry = 10;
   const box = (img: string, h: number) => {
     doc.addImage(img, 'JPEG', RX, ry, RW, h);
@@ -85,11 +129,10 @@ function drawOpinion(doc: jsPDF, v: Voyage, m: CrewMember, f: ReturnType<typeof 
   };
   if (a.map) box(a.map, RW / 1.46);
   if (a.photo) box(a.photo, RW / 1.5);
-  const hasRight = ry > 10;
   const rightBottom = hasRight ? ry : 0;
 
   /* tytuł */
-  let y = 38;
+  let y = Math.max(38, 13.5 + club.length * clubLh + 9);
   set(21, true, NAVY);
   doc.text('OPINIA Z REJSU', M, y);
   doc.setDrawColor(...BLUSH);
@@ -247,16 +290,26 @@ function drawOpinion(doc: jsPDF, v: Voyage, m: CrewMember, f: ReturnType<typeof 
   return y;
 }
 
-export async function buildOpinionsPdf(v: Voyage, members: CrewMember[], track: Fix[], photo: string | undefined, onStep?: (s: string) => void) {
+export type OpinionImages = { photo?: string; route?: string; vlogo?: string };
+
+export async function buildOpinionsPdf(v: Voyage, members: CrewMember[], track: Fix[], imgs: OpinionImages, onStep?: (s: string) => void) {
   onStep?.('Wczytuję czcionki…');
   const { doc } = await newPdfDoc();
-  onStep?.('Rysuję mapę śladu…');
-  const [logo, mapImg, photoImg] = await Promise.all([
-    toDataUrl(logoUrl).catch(() => undefined),
-    renderTrackImage(v, track, 876, 600).catch(() => undefined),
-    photo ? cropToRatio(photo, 1.5).catch(() => undefined) : Promise.resolve(undefined),
+  const mode = v.opinion?.routeMode ?? 'track';
+  onStep?.(mode === 'track' ? 'Rysuję mapę śladu…' : 'Przygotowuję obrazy…');
+  const route =
+    mode === 'image' && imgs.route
+      ? containToRatio(imgs.route, 1.46).catch(() => undefined)
+      : mode === 'track'
+        ? renderTrackImage(v, track, 876, 600).then((r) => r?.dataUrl).catch(() => undefined)
+        : Promise.resolve(undefined);
+  const [logo, map, photo, vlogoSize] = await Promise.all([
+    v.opinion?.akzLogo === false ? Promise.resolve(undefined) : toDataUrl(logoUrl).catch(() => undefined),
+    route,
+    imgs.photo ? cropToRatio(imgs.photo, 1.5).catch(() => undefined) : Promise.resolve(undefined),
+    imgs.vlogo ? imageSize(imgs.vlogo).catch(() => undefined) : Promise.resolve(undefined),
   ]);
-  const assets: Assets = { logo, map: mapImg?.dataUrl, photo: photoImg };
+  const assets: Assets = { logo, map, photo, vlogo: imgs.vlogo && vlogoSize ? { data: imgs.vlogo, ...vlogoSize } : undefined };
   const facts = voyageFacts(v);
   onStep?.('Składam opinie…');
   for (const m of members) {

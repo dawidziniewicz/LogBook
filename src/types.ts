@@ -73,12 +73,22 @@ export type CrewMember = {
   form?: 'm' | 'f';
 };
 
+export type OpinionHours = Partial<Record<keyof Tally, string>>;
+
 export type OpinionSettings = {
   series: string;
   remarks: string;
   clubHeader: string;
   sailArea: string;
   signature?: Signature;
+  /** trasa na opinii: ślad z dziennika, własne zdjęcie trasy albo brak */
+  routeMode?: 'track' | 'image' | 'none';
+  /** logo AKŻ w nagłówku */
+  akzLogo?: boolean;
+  /** ręczne zestawienie godzin (puste = z dziennika) */
+  hours?: OpinionHours;
+  /** ręczna lista portów (pusta = z dziennika) */
+  ports?: string;
 };
 
 export type YachtData = {

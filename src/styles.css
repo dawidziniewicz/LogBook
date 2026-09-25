@@ -2072,3 +2072,32 @@ html.print-mode .leaflet-tile-pane {
 .crew-body .field.wide {
   gap: 8px;
 }
+
+.hours-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.img-grid {
+  display: grid;
+  gap: 16px;
+  margin-top: 10px;
+}
+@media (min-width: 700px) {
+  .img-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+.crew-photo.contain {
+  object-fit: contain;
+  background: #fff;
+}
+.logo-check {
+  align-items: center;
+}
+.logo-check img {
+  background: #fff;
+  border-radius: 8px;
+  padding: 2px;
+}
