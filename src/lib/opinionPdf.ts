@@ -351,6 +351,15 @@ function drawOpinion(doc: jsPDF, v: Voyage, m: CrewMember, f: ReturnType<typeof 
   const whoLines = doc.splitTextToSize(who, colW) as string[];
   doc.text(whoLines, M, y);
   y += lh(11) * whoLines.length;
+  /* opinia kapitana (PZŻ) – na górze, zaraz pod imieniem i nazwiskiem; sam wynik, pogrubiony */
+  set(10, true, NAVY);
+  const verdictLabel = `${t(L('Opinia kapitana', "Captain's opinion")).toUpperCase()}: `;
+  doc.text(verdictLabel, M, y);
+  const labelW = doc.getTextWidth(verdictLabel);
+  const verdict = m.verdict === 'positive' ? L('pozytywna', 'positive') : m.verdict === 'negative' ? L('negatywna', 'negative') : '—';
+  set(11, true, INK);
+  doc.text(t(verdict).toUpperCase(), M + labelW, y);
+  y += lh(10) + 1.5 * s;
   if (m.phone || m.email) field([m.phone && L('Tel.', 'Phone'), m.email && 'E-mail'].filter(Boolean).join(' / '), [m.phone, m.email].filter(Boolean).join(' / '));
   const series = v.opinion?.series?.trim();
   field(series ? L(`${partPl} z cyklu`, 'Took part in the cruise series') : L(partPl, 'Took part in the cruise'), series || v.name);
@@ -422,17 +431,6 @@ function drawOpinion(doc: jsPDF, v: Voyage, m: CrewMember, f: ReturnType<typeof 
     labels.forEach((l, j) => doc.text(t(l), x + tw / 2, ty + (7.6 + j * 3.1) * s, { align: 'center', maxWidth: tw - 2 }));
   });
   y += 2 * th + 2.5 + 3;
-
-  /* opinia kapitana (PZŻ) – sam wynik, pogrubiony */
-  widen();
-  set(10, true, NAVY);
-  const verdictLabel = `${t(L('Opinia kapitana', "Captain's opinion")).toUpperCase()}: `;
-  doc.text(verdictLabel, M, y);
-  const labelW = doc.getTextWidth(verdictLabel);
-  const verdict = m.verdict === 'positive' ? L('pozytywna', 'positive') : m.verdict === 'negative' ? L('negatywna', 'negative') : '—';
-  set(11, true, INK);
-  doc.text(t(verdict).toUpperCase(), M + labelW, y);
-  y += lh(10) + 3 * s;
 
   /* skład załogi */
   section(L('Skład załogi', 'Crew'));

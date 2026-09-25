@@ -2,12 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import { useStore } from '../store';
 import { HOUR_FIELDS, DEFAULT_REQUIRED } from '../data/reference';
 import { beep, nextReminder, requestNotificationPermission, showSystemNotification, unlockAudio } from '../lib/reminders';
-import { hhmm, dateKey, uid } from '../lib/time';
+import { hhmm, dateKey } from '../lib/time';
 import { go } from '../lib/router';
 import { Card, toast } from '../components/ui';
-import { get as idbGet, set as idbSet } from 'idb-keyval';
-import type { Voyage } from '../types';
+import { get as idbGet } from 'idb-keyval';
 import { ASSET_KINDS } from '../lib/photo';
+import { describeBackup, importBackupFile } from '../lib/backup';
 import { FileActions } from '../components/FileActions';
 
 const MINUTES = [45, 50, 55, 0, 5, 10, 15];
@@ -17,7 +17,7 @@ const minuteLabel = (m: number) => (m === 0 ? 'o pełnej (:00)' : m > 30 ? `${60
 const isIosApp = typeof document !== 'undefined' && document.documentElement.classList.contains('ios-standalone');
 
 export function SettingsPage() {
-  const { settings, setSettings, voyages, activeId, setActive, createVoyage, deleteVoyage, importVoyage } = useStore();
+  const { settings, setSettings, voyages, activeId, setActive, createVoyage, deleteVoyage } = useStore();
   const active = voyages.find((v) => v.id === activeId);
   const fileRef = useRef<HTMLInputElement>(null);
   const [customMin, setCustomMin] = useState(!MINUTES.includes(settings.reminders.minute));
@@ -241,19 +241,9 @@ export function SettingsPage() {
             e.target.value = '';
             if (!f) return;
             try {
-              const j = JSON.parse(await f.text());
-              const v = j.voyage as Voyage;
-              if (!v?.id || !v.days) throw new Error();
-              // najpierw ślad i obrazy (pod docelowym id), dopiero potem przełączenie na rejs –
-              // inaczej aplikacja wczytałaby pusty ślad i brak zdjęć
-              const exists = useStore.getState().voyages.some((x) => x.id === v.id);
-              const final = exists ? { ...v, id: uid(), name: `${v.name} (kopia)` } : v;
-              if (Array.isArray(j.track)) await idbSet(`track:${final.id}`, j.track);
-              for (const k of ASSET_KINDS) if (typeof j[k] === 'string') await idbSet(`${k}:${final.id}`, j[k]);
-              importVoyage(final);
-              toast(`Zaimportowano: ${describeBackup(final, Array.isArray(j.track) ? j.track : [], j, f.size)}`, 'ok', 7000);
-            } catch {
-              toast('To nie jest poprawny plik dziennika', 'err');
+              toast(`Zaimportowano: ${await importBackupFile(f)}`, 'ok', 7000);
+            } catch (err) {
+              toast((err as Error).message, 'err');
             }
           }}
         />
@@ -263,21 +253,3 @@ export function SettingsPage() {
   );
 }
 
-/** krótki opis zawartości pliku kopii */
-function describeBackup(v: Voyage, track: unknown[], assets: Record<string, unknown>, size: number) {
-  const days = Object.values(v.days);
-  const sigs =
-    days.reduce((n, d) => n + (d.firstOfficer?.image ? 1 : 0) + (d.captain?.image ? 1 : 0), 0) + (v.opinion?.signature?.image ? 1 : 0);
-  const has = (k: string) => (typeof assets[k] === 'string' ? '✓' : '—');
-  const mb = size / 1024 / 1024;
-  return [
-    `${days.length} dni`,
-    `${v.crew.length} os. załogi`,
-    `${sigs} podpis${sigs === 1 ? '' : sigs < 5 && sigs > 1 ? 'y' : 'ów'}`,
-    `ślad ${track.length} pkt`,
-    `zdjęcie załogi ${has('photo')}`,
-    `zdjęcie trasy ${has('route')}`,
-    `logo rejsu ${has('vlogo')}`,
-    mb >= 1 ? `${mb.toFixed(1).replace('.', ',')} MB` : `${Math.max(1, Math.round(size / 1024))} kB`,
-  ].join(' · ');
-}

@@ -2399,3 +2399,6 @@ html.print-mode .leaflet-tile-pane {
   color: #62678c;
   font-size: 0.7rem;
 }
+.welcome .btn.big {
+  width: min(100%, 320px);
+}

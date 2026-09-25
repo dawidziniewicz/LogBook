@@ -1,11 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useStore, useVoyage } from './store';
 import { go, useRoute } from './lib/router';
 import { dateKey, fmtDate, hourLabel } from './lib/time';
 import { onReminder, startReminderLoop, type ReminderEvent } from './lib/reminders';
 import { loadTrack, startTracking, stopTracking } from './lib/tracker';
 import { HOUR_FIELDS } from './data/reference';
-import { Toasts } from './components/ui';
+import { Toasts, toast } from './components/ui';
+import { importBackupFile } from './lib/backup';
 import { HomePage } from './pages/HomePage';
 import { DayPage } from './pages/DayPage';
 import { VoyagePage } from './pages/VoyagePage';
@@ -171,6 +172,7 @@ export function App() {
 
 function Welcome() {
   const createVoyage = useStore((s) => s.createVoyage);
+  const fileRef = useRef<HTMLInputElement>(null);
   return (
     <div className="welcome">
       <img src="/favicon.svg" alt="" width={96} height={96} />
@@ -194,6 +196,26 @@ function Welcome() {
       >
         📝 Tylko opinie z rejsu
       </button>
+      <button className="btn big ghost" onClick={() => fileRef.current?.click()}>
+        ⬆️ Importuj rejs z pliku
+      </button>
+      <input
+        ref={fileRef}
+        type="file"
+        accept="application/json,.json"
+        hidden
+        onChange={async (e) => {
+          const f = e.target.files?.[0];
+          e.target.value = '';
+          if (!f) return;
+          try {
+            toast(`Zaimportowano: ${await importBackupFile(f)}`, 'ok', 7000);
+            go('/');
+          } catch (err) {
+            toast((err as Error).message, 'err');
+          }
+        }}
+      />
       <p className="muted small">Dane są przechowywane wyłącznie na tym urządzeniu. Kopię zapasową zrobisz w Ustawieniach.</p>
       <Toasts />
     </div>
