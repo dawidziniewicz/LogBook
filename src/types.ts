@@ -86,7 +86,11 @@ export type OpinionSettings = {
   sailArea: string;
   signature?: Signature;
   /** trasa na opinii: ślad z dziennika, własne zdjęcie trasy albo brak */
-  routeMode?: 'track' | 'image' | 'none';
+  routeMode?: 'track' | 'drawn' | 'image' | 'none';
+  /** trasa narysowana ręcznie na mapie (gdy brak śladu) */
+  drawnRoute?: { lat: number; lon: number }[];
+  /** co na górze prawej kolumny opinii: trasa czy zdjęcie załogi */
+  imageOrder?: 'route' | 'photo';
   /** logo AKŻ w nagłówku */
   akzLogo?: boolean;
   /** ręczne zestawienie godzin (puste = z dziennika) */

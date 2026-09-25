@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { SIGNATURE_INK } from '../lib/signature';
 
 export function Field(props: {
   label: ReactNode;
@@ -193,7 +194,7 @@ export function SignaturePad(props: { label: ReactNode; value?: { name?: string;
     ctx.lineWidth = 2.2;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    ctx.strokeStyle = getComputedStyle(c).color;
+    ctx.strokeStyle = SIGNATURE_INK;
   }, [editing]);
 
   const pos = (e: React.PointerEvent) => {
@@ -244,7 +245,9 @@ export function SignaturePad(props: { label: ReactNode; value?: { name?: string;
         </>
       ) : v.image ? (
         <div className="sig-view">
-          <img src={v.image} alt="podpis" />
+          <div className="sig-paper">
+            <img src={v.image} alt="podpis" />
+          </div>
           <div className="sig-meta">
             {v.at && new Date(v.at).toLocaleString('pl-PL')}
             <button className="link" onClick={() => props.onChange({ name: v.name })}>

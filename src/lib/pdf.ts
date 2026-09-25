@@ -5,6 +5,7 @@ import { allTallies, sortedDays } from './compute';
 import { distanceNm, fmtLat, fmtLon, type Fix } from './geo';
 import { fmtDate, hourLabel, weekday } from './time';
 import { logWaypoints, voyageLine } from './voyageTrack';
+import { fitBox, signatureForPdf } from './signature';
 import robotoRegularUrl from '@expo-google-fonts/roboto/400Regular/Roboto_400Regular.ttf?url';
 import robotoBoldUrl from '@expo-google-fonts/roboto/700Bold/Roboto_700Bold.ttf?url';
 
@@ -47,9 +48,10 @@ function loadTile(url: string): Promise<HTMLImageElement | null> {
   });
 }
 
-export async function renderTrackImage(v: Voyage, track: Fix[], W = 1100, H = 820) {
-  const line = voyageLine(v, track);
-  const wps = logWaypoints(v);
+/** mapa śladu jako obraz; `custom` = trasa narysowana ręcznie zamiast śladu z dziennika */
+export async function renderTrackImage(v: Voyage, track: Fix[], W = 1100, H = 820, custom?: { lat: number; lon: number }[]) {
+  const line = custom ?? voyageLine(v, track);
+  const wps = custom ? [] : logWaypoints(v);
   const pts = [...line, ...wps];
   if (!pts.length) return undefined;
   const lats = pts.map((p) => p.lat);
@@ -369,18 +371,17 @@ export async function buildVoyagePdf(v: Voyage, track: Fix[], onStep?: (s: strin
     doc.setFont('Roboto', 'normal');
     const sigW = (PW - 2 * M - 8) / 2;
     const sigs: [string, Signature | undefined][] = [['I oficer', day.firstOfficer], ['Kapitan', day.captain]];
+    const prepared = await Promise.all(sigs.map(([, sig]) => signatureForPdf(sig?.image)));
     sigs.forEach(([label, sig], i) => {
       const x = M + i * (sigW + 8);
       doc.setDrawColor(...LINE);
       doc.rect(x, y + 3, sigW, 28);
       doc.setFontSize(8);
       doc.text(t(`${label}: ${sig?.name ?? ''}`), x + 2, y + 7);
-      if (sig?.image) {
-        try {
-          doc.addImage(sig.image, 'PNG', x + 2, y + 9, sigW - 4, 20, undefined, 'FAST');
-        } catch {
-          /* uszkodzony podpis – pomijamy */
-        }
+      const img = prepared[i];
+      if (img) {
+        const fb = fitBox(img.w, img.h, sigW - 4, 20);
+        doc.addImage(img.data, 'JPEG', x + 2, y + 9, fb.w, fb.h);
       }
     });
   }

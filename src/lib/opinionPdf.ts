@@ -6,6 +6,7 @@ import type { Fix } from './geo';
 import { newPdfDoc, pdfText as t, renderTrackImage } from './pdf';
 import { containToRatio, cropToRatio, imageSize } from './photo';
 import { dateKey } from './time';
+import { fitBox, signatureForPdf } from './signature';
 import logoUrl from '../assets/akz-logo.png';
 
 const NAVY: [number, number, number] = [31, 43, 110];
@@ -150,7 +151,8 @@ function voyageFacts(v: Voyage) {
   };
 }
 
-type Assets = { logo?: string; vlogo?: { data: string; w: number; h: number }; map?: string; photo?: string };
+type Img = { data: string; w: number; h: number };
+type Assets = { logo?: string; vlogo?: Img; map?: string; photo?: string; sig?: Img };
 
 /** rysuje jedną opinię; zwraca true, gdy treść zmieściła się nad przypisami */
 function drawOpinion(doc: jsPDF, v: Voyage, m: CrewMember, f: ReturnType<typeof voyageFacts>, a: Assets, s: number): boolean {
@@ -220,8 +222,11 @@ function drawOpinion(doc: jsPDF, v: Voyage, m: CrewMember, f: ReturnType<typeof 
     doc.rect(RX, ry, RW, h);
     ry += h + 3;
   };
-  if (a.map) box(a.map, RW / 1.46);
-  if (a.photo) box(a.photo, RW / 1.5);
+  const order = v.opinion?.imageOrder === 'photo' ? (['photo', 'map'] as const) : (['map', 'photo'] as const);
+  for (const k of order) {
+    if (k === 'map' && a.map) box(a.map, RW / 1.46);
+    if (k === 'photo' && a.photo) box(a.photo, RW / 1.5);
+  }
   const rightBottom = hasRight ? ry : 0;
   let colW = hasRight ? RX - M - 5 : W;
 
@@ -439,13 +444,9 @@ function drawOpinion(doc: jsPDF, v: Voyage, m: CrewMember, f: ReturnType<typeof 
   doc.text(t(place), M, y + 1 + lh(9.5));
   set(8.5, false, MUTED);
   doc.text(t(`${L('Czytelny podpis kapitana', "Captain's legible signature")}:`), sx, y + 1);
-  const sig = v.opinion?.signature?.image;
-  if (sig) {
-    try {
-      doc.addImage(sig, 'PNG', sx, y + 2, sigW, sigH, undefined, 'FAST');
-    } catch {
-      /* uszkodzony podpis */
-    }
+  if (a.sig) {
+    const fb = fitBox(a.sig.w, a.sig.h, sigW, sigH - 1);
+    doc.addImage(a.sig.data, 'JPEG', sx, y + 2 + (sigH - 1 - fb.h), fb.w, fb.h);
   }
   doc.setDrawColor(...MUTED);
   doc.setLineWidth(0.2);
@@ -468,20 +469,23 @@ export async function buildOpinionsPdf(v: Voyage, members: CrewMember[], track: 
   onStep?.('Wczytuję czcionki…');
   const { doc } = await newPdfDoc();
   const mode = v.opinion?.routeMode ?? 'track';
-  onStep?.(mode === 'track' ? 'Rysuję mapę śladu…' : 'Przygotowuję obrazy…');
+  onStep?.(mode === 'track' || mode === 'drawn' ? 'Rysuję mapę trasy…' : 'Przygotowuję obrazy…');
   const route =
     mode === 'image' && imgs.route
       ? containToRatio(imgs.route, 1.46).catch(() => undefined)
       : mode === 'track'
         ? renderTrackImage(v, track, 876, 600).then((r) => r?.dataUrl).catch(() => undefined)
-        : Promise.resolve(undefined);
+        : mode === 'drawn' && (v.opinion?.drawnRoute?.length ?? 0) > 1
+          ? renderTrackImage(v, [], 876, 600, v.opinion!.drawnRoute).then((r) => r?.dataUrl).catch(() => undefined)
+          : Promise.resolve(undefined);
   const [logo, map, photo, vlogoSize] = await Promise.all([
     v.opinion?.akzLogo === false ? Promise.resolve(undefined) : toDataUrl(logoUrl).catch(() => undefined),
     route,
     imgs.photo ? cropToRatio(imgs.photo, 1.5).catch(() => undefined) : Promise.resolve(undefined),
     imgs.vlogo ? imageSize(imgs.vlogo).catch(() => undefined) : Promise.resolve(undefined),
   ]);
-  const assets: Assets = { logo, map, photo, vlogo: imgs.vlogo && vlogoSize ? { data: imgs.vlogo, ...vlogoSize } : undefined };
+  const sig = await signatureForPdf(v.opinion?.signature?.image);
+  const assets: Assets = { logo, map, photo, sig, vlogo: imgs.vlogo && vlogoSize ? { data: imgs.vlogo, ...vlogoSize } : undefined };
   const facts = voyageFacts(v);
   onStep?.('Składam opinie…');
   for (const m of members) {

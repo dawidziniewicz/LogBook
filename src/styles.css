@@ -27,7 +27,8 @@
   --radius: 14px;
   --tap: 44px;
   /* iOS 26: pod paskiem statusu system dokłada rozmyty pas (~40pt) – treść zaczyna się niżej */
-  --top-safe: calc(env(safe-area-inset-top, 0px) + min(env(safe-area-inset-top, 0px), 40px));
+  /* stały zapas 44px (także na iPadzie z niskim paskiem statusu), 0 gdy nie ma wcięcia */
+  --top-safe: calc(env(safe-area-inset-top, 0px) + min(env(safe-area-inset-top, 0px) * 100, 44px));
   --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
   color-scheme: light;
@@ -112,7 +113,7 @@
   --shadow: none;
   color-scheme: dark;
 }
-:root[data-theme='night'] img:not(.sig-view img) {
+:root[data-theme='night'] img:not(.sig-view img):not(.leaflet-tile) {
   filter: grayscale(1) brightness(0.5) sepia(1) hue-rotate(-50deg) saturate(6);
 }
 
@@ -1437,17 +1438,24 @@ h3.group {
   height: 140px;
   border: 1px dashed var(--line-strong);
   border-radius: 10px;
-  background: var(--surface-2);
+  /* zawsze „kartka”: białe tło i granatowy tusz, także w ciemnym motywie */
+  background: #fff;
   touch-action: none;
-  color: var(--ink);
 }
-.sig-view img {
+.sig-paper {
+  display: inline-block;
   max-width: 100%;
-  height: 90px;
-  object-fit: contain;
   background: #fff;
   border-radius: 8px;
   border: 1px solid var(--line);
+}
+.sig-view img {
+  display: block;
+  max-width: 100%;
+  height: 90px;
+  object-fit: contain;
+  /* starsze podpisy złożone jasnym tuszem w ciemnym motywie – pokaż je ciemne */
+  filter: brightness(0);
 }
 .sig-meta {
   display: flex;
@@ -2120,4 +2128,23 @@ html.print-mode .leaflet-tile-pane {
   background: #fff;
   border-radius: 8px;
   padding: 2px;
+}
+
+.route-field {
+  margin-top: 14px;
+}
+.route-drawer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.route-canvas {
+  height: 360px;
+}
+.route-info {
+  font-size: 0.9rem;
+  margin-right: auto;
+}
+.route-info b {
+  color: var(--primary);
 }

@@ -7,6 +7,8 @@ import { dateKey } from '../lib/time';
 import { deleteAsset, loadAsset, resizeImage, saveAsset, type AssetKind } from '../lib/photo';
 import { FileActions } from '../components/FileActions';
 import { getTrack } from '../lib/tracker';
+import { voyageLine } from '../lib/voyageTrack';
+import { RouteDrawer } from '../components/RouteDrawer';
 import { num } from '../lib/compute';
 import { uid } from '../lib/time';
 import { Area, Card, Chips, Field, SignaturePad, toast } from '../components/ui';
@@ -61,6 +63,7 @@ export function OpinionsPage() {
   const totals = opinionTotals(v);
   const cap = captainOf(v);
   const routeMode = op.routeMode ?? 'track';
+  const hasTrack = voyageLine(v, getTrack()).length > 1;
 
   const setImg = async (kind: AssetKind, data?: string) => {
     if (data) await saveAsset(kind, v.id, data);
@@ -239,6 +242,7 @@ export function OpinionsPage() {
               {(
                 [
                   ['track', 'Ślad z dziennika'],
+                  ['drawn', 'Narysuj na mapie'],
                   ['image', 'Własne zdjęcie'],
                   ['none', 'Bez trasy'],
                 ] as const
@@ -248,7 +252,12 @@ export function OpinionsPage() {
                 </button>
               ))}
             </div>
-            {routeMode === 'track' && <span className="field-hint">Mapa OpenSeaMap ze śladem GPS i pozycjami z dziennika. Bez śladu – opinia bez mapy.</span>}
+            {routeMode === 'track' && (
+              <span className="field-hint">
+                {hasTrack ? 'Mapa OpenSeaMap ze śladem GPS i pozycjami z dziennika.' : 'Brak śladu w dzienniku – wybierz „Narysuj na mapie”, żeby dodać trasę ręcznie.'}
+              </span>
+            )}
+            {routeMode === 'drawn' && <span className="field-hint">Mapa z trasą narysowaną poniżej.</span>}
             {routeMode === 'image' && (
               <ImagePicker
                 label=""
@@ -262,6 +271,30 @@ export function OpinionsPage() {
           </div>
 
           <ImagePicker label="Zdjęcie załogi" value={imgs.photo} onPick={async (f) => setImg('photo', await resizeImage(f, 1600))} onClear={() => setImg('photo')} />
+        </div>
+
+        {routeMode === 'drawn' && (
+          <div className="field wide route-field">
+            <span className="field-label">Trasa narysowana ręcznie</span>
+            <RouteDrawer
+              value={op.drawnRoute ?? []}
+              onChange={(pts) => setOp({ drawnRoute: pts })}
+              startPlace={v.embarkPort || undefined}
+              fallback={getTrack().at(-1)}
+            />
+          </div>
+        )}
+
+        <div className="field wide">
+          <span className="field-label">Kolejność obrazów na opinii (prawa kolumna)</span>
+          <div className="seg wide-seg">
+            <button className={(op.imageOrder ?? 'route') === 'route' ? 'on' : ''} onClick={() => setOp({ imageOrder: 'route' })}>
+              🗺 Trasa, potem 📷 zdjęcie
+            </button>
+            <button className={op.imageOrder === 'photo' ? 'on' : ''} onClick={() => setOp({ imageOrder: 'photo' })}>
+              📷 Zdjęcie, potem 🗺 trasa
+            </button>
+          </div>
         </div>
       </Card>
 
