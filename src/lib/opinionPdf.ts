@@ -173,10 +173,6 @@ function drawOpinion(doc: jsPDF, v: Voyage, m: CrewMember, f: ReturnType<typeof 
   const voyageNo = v.opinion?.voyageNo?.trim();
   const notes = [
     voyageNo ? L('* jeżeli był prowadzony', '* if concerns') : '',
-    L(
-      '** wymagane na podstawie § 4 pkt 3 Rozporządzenia Ministra Sportu i Turystyki z dnia 9 kwietnia 2013 r. w sprawie uprawiania turystyki wodnej',
-      '** required pursuant to § 4 point 3 of the Regulation of the Minister of Sport and Tourism of April 9, 2013 on water tourism',
-    ),
   ].filter(Boolean);
   doc.setFont('Roboto', 'normal');
   doc.setFontSize(6.5);
@@ -379,7 +375,7 @@ function drawOpinion(doc: jsPDF, v: Voyage, m: CrewMember, f: ReturnType<typeof 
   /* opinia kapitana (PZŻ) – sam wynik, pogrubiony */
   widen();
   set(10, true, NAVY);
-  const verdictLabel = `${t(L('Opinia kapitana', "Captain's opinion")).toUpperCase()}**: `;
+  const verdictLabel = `${t(L('Opinia kapitana', "Captain's opinion")).toUpperCase()}: `;
   doc.text(verdictLabel, M, y);
   const labelW = doc.getTextWidth(verdictLabel);
   const verdict = m.verdict === 'positive' ? L('pozytywna', 'positive') : m.verdict === 'negative' ? L('negatywna', 'negative') : '—';
@@ -444,7 +440,7 @@ function drawOpinion(doc: jsPDF, v: Voyage, m: CrewMember, f: ReturnType<typeof 
   doc.setFont('Roboto', 'normal');
   doc.setFontSize(6.5);
   doc.setTextColor(...MUTED);
-  doc.text(noteLines, M, 288 - noteH + 6.5 * PT);
+  if (noteLines.length) doc.text(noteLines, M, 288 - noteH + 6.5 * PT);
   doc.setFontSize(7);
   doc.text(t(`${v.yachtName ? `s/y ${v.yachtName} · ` : ''}${v.name}`), M, 292);
   return y <= limit;
