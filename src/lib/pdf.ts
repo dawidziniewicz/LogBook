@@ -16,7 +16,7 @@ const LINE: [number, number, number] = [90, 90, 90];
 const t = (s?: string | number | null) =>
   String(s ?? '')
     .replace(/⚓/g, 'Kotw.')
-    .replace(/[^\u0000-ɏͰ-Ͽ -⁯←-⇿°′″]/gu, '')
+    .replace(/[^\u0000-\u024F\u0370-\u03FF\u2000-\u206F\u2190-\u21FF\u2260-\u2265°′″]/gu, '')
     .trim();
 const c = (n: number) => String(n).replace('.', ',');
 

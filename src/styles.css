@@ -1054,10 +1054,22 @@ table {
 .log-table {
   font-size: 0.9rem;
   min-width: 980px;
+  /* separate: przy „collapse” przyklejone komórki gubią obramowania */
+  border-collapse: separate;
+  border-spacing: 0;
+}
+/* tabela dziennika przewija się we własnej ramce – nagłówki i kolumna godzin zawsze widoczne */
+.table-wrap.log-wrap {
+  max-height: calc(100dvh - var(--top-safe) - 150px);
+  min-height: 320px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--line);
 }
 .log-table th,
 .log-table td {
-  border: 1px solid var(--line);
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
   padding: 6px 6px;
   text-align: center;
   white-space: nowrap;
@@ -1068,6 +1080,11 @@ table {
   font-weight: 700;
   position: sticky;
   top: 0;
+  z-index: 2;
+  box-shadow: 0 1px 0 var(--line-strong);
+}
+.log-table thead th.sticky {
+  z-index: 3;
 }
 .log-table tbody th {
   font-family: var(--mono);
@@ -1906,6 +1923,9 @@ html.print-mode body {
 /* ===== Mapa ===== */
 .voyage-map {
   position: relative;
+  /* własny kontekst warstw: warstwy Leaflet (z-index 400–1000) nie wychodzą nad paski menu */
+  isolation: isolate;
+  z-index: 0;
   border-radius: var(--radius);
   overflow: hidden;
   border: 1px solid var(--line);

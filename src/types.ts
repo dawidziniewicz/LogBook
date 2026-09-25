@@ -71,9 +71,13 @@ export type CrewMember = {
   opinionNotes?: string;
   /** forma gramatyczna w opinii: „uczestniczył” / „uczestniczyła” */
   form?: 'm' | 'f';
+  email?: string;
+  /** opinia kapitana (PZŻ): pozytywna / negatywna */
+  verdict?: 'positive' | 'negative';
 };
 
-export type OpinionHours = Partial<Record<keyof Tally, string>>;
+export type OpinionHours = Partial<Record<keyof Tally | 'tidal', string>>;
+export type OpinionLang = 'pl' | 'en' | 'plen';
 
 export type OpinionSettings = {
   series: string;
@@ -89,6 +93,16 @@ export type OpinionSettings = {
   hours?: OpinionHours;
   /** ręczna lista portów (pusta = z dziennika) */
   ports?: string;
+  /** język opinii */
+  lang?: OpinionLang;
+  /** pola PZŻ */
+  voyageNo?: string;
+  embarkTidal?: boolean;
+  disembarkTidal?: boolean;
+  tidalPorts?: string;
+  days?: string;
+  place?: string;
+  issueDate?: string;
 };
 
 export type YachtData = {
@@ -104,6 +118,10 @@ export type YachtData = {
   mast: string;
   engine: string;
   auxEngine: string;
+  /** pola PZŻ */
+  regNo?: string;
+  hullLength?: string;
+  enginePower?: string;
 };
 
 export type VoyageStatus = 'port' | 'sea' | 'anchor';

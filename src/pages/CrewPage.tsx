@@ -86,6 +86,7 @@ export function CrewPage() {
                       <Field label="Nr dokumentu (paszport/ID)" value={c.docNo} onChange={upd('docNo')} />
                       <Field label="Data i miejsce urodzenia" value={c.birth} onChange={upd('birth')} />
                       <Field label="Telefon" type="tel" value={c.phone} onChange={upd('phone')} />
+                      <Field label="E-mail" type="email" value={c.email ?? ''} onChange={upd('email')} />
                       <Field label="Dodatkowe informacje" value={c.info} onChange={upd('info')} wide />
                     </div>
                     <div className="row gap">

@@ -2,27 +2,34 @@ import { useEffect, useRef, useState } from 'react';
 import { useStore, useVoyage } from '../store';
 import { DEFAULT_CLUB_HEADER, DUTIES, GRADES, RESILIENCE, ROLES, SEASICK, TRAINING_FOR } from '../data/opinion';
 import { RIGS } from '../data/reference';
-import { buildOpinionsPdf, captainOf, logPorts, logTotals, opinionFileName, opinionTotals, type OpinionImages } from '../lib/opinionPdf';
+import { buildOpinionsPdf, captainOf, logDays, logPorts, logTotals, opinionFileName, opinionTotals, type OpinionImages } from '../lib/opinionPdf';
+import { dateKey } from '../lib/time';
 import { deleteAsset, loadAsset, resizeImage, saveAsset, type AssetKind } from '../lib/photo';
 import { FileActions } from '../components/FileActions';
 import { getTrack } from '../lib/tracker';
 import { num } from '../lib/compute';
 import { uid } from '../lib/time';
 import { Area, Card, Chips, Field, SignaturePad, toast } from '../components/ui';
-import type { CrewMember, OpinionSettings, Tally, Voyage } from '../types';
+import type { CrewMember, OpinionHours, OpinionLang, OpinionSettings, Voyage } from '../types';
 import akzLogoUrl from '../assets/akz-logo.png';
 
 const emptyOpinion = (): OpinionSettings => ({ series: '', remarks: '', clubHeader: DEFAULT_CLUB_HEADER, sailArea: '' });
-const filled = (m: CrewMember) => [m.duties, m.seasick, m.resilience, m.trainingFor].filter(Boolean).length;
+const filled = (m: CrewMember) => [m.duties, m.seasick, m.resilience, m.trainingFor, m.verdict].filter(Boolean).length;
 const fmt = (n: number) => String(n).replace('.', ',');
 
-const HOURS: { k: keyof Tally; label: string; unit: string }[] = [
-  { k: 'port', label: 'Postój', unit: 'h' },
-  { k: 'sail', label: 'Na żaglach', unit: 'h' },
+const HOURS: { k: keyof OpinionHours; label: string; unit: string }[] = [
+  { k: 'sail', label: 'Pod żaglami', unit: 'h' },
   { k: 'engine', label: 'Na silniku', unit: 'h' },
-  { k: 'total', label: 'Suma godzin', unit: 'h' },
+  { k: 'total', label: 'Razem (żagle + silnik)', unit: 'h' },
+  { k: 'tidal', label: 'Po wodach pływowych', unit: 'h' },
+  { k: 'port', label: 'Postój (porty, kotwica)', unit: 'h' },
   { k: 'above6', label: 'Powyżej 6°B', unit: 'h' },
   { k: 'miles', label: 'Przebyto', unit: 'Mm' },
+];
+const LANGS: [OpinionLang, string][] = [
+  ['pl', 'PL'],
+  ['en', 'EN'],
+  ['plen', 'PL / EN'],
 ];
 
 const newMember = (): CrewMember => ({
@@ -90,6 +97,23 @@ export function OpinionsPage() {
   return (
     <div className="page">
       <Card title="Opinie z rejsu" actions={<PdfButton k="all" members={v.crew} label={`📄 Wszystkie opinie (${v.crew.length})`} />}>
+        <div className="field wide">
+          <span className="field-label">Język opinii</span>
+          <div className="seg">
+            {LANGS.map(([k, l]) => (
+              <button key={k} className={(op.lang ?? 'pl') === k ? 'on' : ''} onClick={() => setOp({ lang: k })}>
+                {l}
+              </button>
+            ))}
+          </div>
+          <span className="field-hint">
+            {(op.lang ?? 'pl') === 'pl'
+              ? 'Opinia po polsku.'
+              : (op.lang ?? 'pl') === 'en'
+                ? 'Crew Member’s Certificate of Passage – etykiety i wartości z list po angielsku. Uwagi wpisuj po angielsku.'
+                : 'Dwujęzyczna, jak wzór PZŻ: „polski / English”. Wartości z list tłumaczą się same.'}
+          </span>
+        </div>
         <p className="muted small">
           Każda opinia mieści się na jednej stronie A4. Wszystko możesz wpisać tutaj ręcznie – dziennik godzinowy nie jest potrzebny. Jeśli prowadzisz dziennik, puste pola uzupełnią się z
           niego same (podpowiedzi w szarym kolorze).
@@ -102,7 +126,16 @@ export function OpinionsPage() {
           <Field label="Rejs z cyklu" value={op.series} onChange={(x) => setOp({ series: x })} placeholder="np. AGH Winter Sail Expedition" />
           <Field label="Nazwa jachtu" value={v.yachtName} onChange={(x) => setV((vv) => void (vv.yachtName = x))} />
           <Field label="Klasa jachtu (producent i typ)" value={v.yacht.maker} onChange={(x) => setV((vv) => void (vv.yacht.maker = x))} placeholder="np. Oceanis 45" />
-          <Field label="Długość całkowita [m]" value={v.yacht.loa} onChange={(x) => setV((vv) => void (vv.yacht.loa = x))} inputMode="decimal" />
+          <Field label="Nr rejestracyjny" value={v.yacht.regNo} onChange={(x) => setV((vv) => void (vv.yacht.regNo = x))} />
+          <Field label="Port macierzysty" value={v.homePort} onChange={(x) => setV((vv) => void (vv.homePort = x))} />
+          <Field
+            label="Długość kadłuba Lh [m]"
+            value={v.yacht.hullLength}
+            onChange={(x) => setV((vv) => void (vv.yacht.hullLength = x))}
+            inputMode="decimal"
+            placeholder={v.yacht.loa ? `${v.yacht.loa} (LC)` : ''}
+          />
+          <Field label="Moc silnika [kW]" value={v.yacht.enginePower} onChange={(x) => setV((vv) => void (vv.yacht.enginePower = x))} inputMode="decimal" />
           <Field
             label="Powierzchnia ożaglowania [m²]"
             value={op.sailArea}
@@ -116,49 +149,68 @@ export function OpinionsPage() {
           <Chips small options={RIGS.map((r) => ({ v: r }))} value={v.yacht.rig} onChange={(r) => setV((vv) => void (vv.yacht.rig = vv.yacht.rig === r ? '' : r))} />
         </div>
         <div className="grid">
-          <Field label="Port zaokrętowania" value={v.embarkPort} onChange={(x) => setV((vv) => void (vv.embarkPort = x))} />
+          <Field label="Nr pływania (wg dziennika jachtowego)" value={op.voyageNo} onChange={(x) => setOp({ voyageNo: x })} hint="Jeśli dziennik był prowadzony" />
+          <Field label="Port zaokrętowania (nazwa i kraj)" value={v.embarkPort} onChange={(x) => setV((vv) => void (vv.embarkPort = x))} placeholder="np. Split, Chorwacja" />
           <Field label="Data zaokrętowania" type="date" value={v.embarkDate} onChange={(x) => setV((vv) => void (vv.embarkDate = x))} />
-          <Field label="Port wyokrętowania" value={v.disembarkPort} onChange={(x) => setV((vv) => void (vv.disembarkPort = x))} />
+          <Field label="Port wyokrętowania (nazwa i kraj)" value={v.disembarkPort} onChange={(x) => setV((vv) => void (vv.disembarkPort = x))} />
           <Field label="Data wyokrętowania" type="date" value={v.disembarkDate} onChange={(x) => setV((vv) => void (vv.disembarkDate = x))} />
           <Field
-            label="Odwiedzone porty"
+            label="Odwiedzone porty (nazwa i kraj)"
             value={op.ports}
             onChange={(x) => setOp({ ports: x })}
-            placeholder={logPorts(v).join(', ') || 'np. Gdynia, Hel, Władysławowo'}
+            placeholder={logPorts(v).join(', ') || 'np. Hvar, Vis, Komiža'}
             hint="Oddziel przecinkami"
             wide
           />
+          <Field
+            label="W tym porty pływowe o średnim skoku pływu ≥ 1,5 m"
+            value={op.tidalPorts}
+            onChange={(x) => setOp({ tidalPorts: x })}
+            hint="Oddziel przecinkami; puste = brak"
+            wide
+          />
+          <Field label="Liczba dni rejsu" value={op.days} onChange={(x) => setOp({ days: x })} inputMode="numeric" placeholder={String(logDays(v))} />
         </div>
+        <label className="check">
+          <input type="checkbox" checked={!!op.embarkTidal} onChange={(e) => setOp({ embarkTidal: e.target.checked })} /> Port zaokrętowania jest portem pływowym (skok ≥ 1,5 m)
+        </label>
+        <label className="check">
+          <input type="checkbox" checked={!!op.disembarkTidal} onChange={(e) => setOp({ disembarkTidal: e.target.checked })} /> Port wyokrętowania jest portem pływowym (skok ≥ 1,5 m)
+        </label>
       </Card>
 
       <Card title="Zestawienie godzinowe rejsu">
         <div className="hours-grid">
           {HOURS.map((h) => {
             const auto = h.k === 'total' && !op.hours?.total?.trim() && (op.hours?.sail?.trim() || op.hours?.engine?.trim());
+            const base = h.k === 'tidal' ? 0 : log[h.k];
             return (
               <Field
                 key={h.k}
                 label={`${h.label} [${h.unit}]`}
                 value={op.hours?.[h.k]}
                 inputMode="decimal"
-                placeholder={fmt(auto ? totals.total : log[h.k])}
+                placeholder={fmt(auto ? totals.total : base)}
                 onChange={(x) => setOp({ hours: { ...op.hours, [h.k]: x } })}
               />
             );
           })}
         </div>
         <p className="muted small">
-          Puste pole = wartość z dziennika. „Suma godzin” liczy się sama z żagli i silnika. Na opinii: postój {fmt(totals.port)} h · żagle {fmt(totals.sail)} h · silnik{' '}
-          {fmt(totals.engine)} h · suma {fmt(totals.total)} h · &gt;6°B {fmt(totals.above6)} h · {fmt(totals.miles)} Mm.
+          Puste pole = wartość z dziennika. „Razem” liczy się samo z żagli i silnika. Na opinii: żagle {fmt(totals.sail)} h · silnik {fmt(totals.engine)} h · razem{' '}
+          {fmt(totals.total)} h · pływowe {fmt(totals.tidal)} h · postój {fmt(totals.port)} h · {fmt(totals.miles)} Mm · {totals.days} dni.
         </p>
       </Card>
 
       <Card title="Kapitan i uwagi">
         <div className="grid">
           <Field label="Kapitan" value={v.card.captain} onChange={(x) => setV((vv) => void (vv.card.captain = x))} placeholder={cap ? `${cap.firstName} ${cap.lastName}` : ''} />
+          <Field label="Stopień żeglarski kapitana" value={v.card.grade} onChange={(x) => setV((vv) => void (vv.card.grade = x))} placeholder={cap?.grade} list="grades" />
           <Field label="Nr patentu kapitana" value={v.card.patent} onChange={(x) => setV((vv) => void (vv.card.patent = x))} placeholder={cap?.patent} />
           <Field label="Telefon" type="tel" value={v.card.phone} onChange={(x) => setV((vv) => void (vv.card.phone = x))} placeholder={cap?.phone} />
-          <Field label="E-mail" type="email" value={v.card.email} onChange={(x) => setV((vv) => void (vv.card.email = x))} />
+          <Field label="E-mail" type="email" value={v.card.email} onChange={(x) => setV((vv) => void (vv.card.email = x))} placeholder={cap?.email} />
+          <Field label="Miejscowość (wystawienia opinii)" value={op.place} onChange={(x) => setOp({ place: x })} placeholder="np. Kraków" />
+          <Field label="Data wystawienia" type="date" value={op.issueDate || dateKey()} onChange={(x) => setOp({ issueDate: x })} />
           <Area label="Uwagi kapitana o przebiegu rejsu" value={op.remarks} onChange={(x) => setOp({ remarks: x })} rows={3} />
           <Area label="Nagłówek (klub, adres)" value={op.clubHeader} onChange={(x) => setOp({ clubHeader: x })} rows={3} />
         </div>
@@ -242,7 +294,7 @@ export function OpinionsPage() {
                     {`${m.firstName} ${m.lastName}`.trim() || <span className="muted">Nowa osoba</span>}
                     <small>{[m.role, m.grade].filter(Boolean).join(' · ')}</small>
                   </span>
-                  <span className={`badge${n === 4 ? ' ok' : ''}`}>{n}/4</span>
+                  <span className={`badge${n === 5 ? ' ok' : ''}`}>{n}/5</span>
                 </button>
                 {isOpen && (
                   <div className="crew-body">
@@ -252,6 +304,8 @@ export function OpinionsPage() {
                       <Field label="Stopień żeglarski" value={m.grade} onChange={(x) => setM(i, { grade: x })} list="grades" />
                       <Field label="Numer patentu" value={m.patent} onChange={(x) => setM(i, { patent: x })} />
                       <Field label="Pełniona funkcja" value={m.role} onChange={(x) => setM(i, { role: x })} list="roles-op" />
+                      <Field label="Telefon" type="tel" value={m.phone} onChange={(x) => setM(i, { phone: x })} />
+                      <Field label="E-mail" type="email" value={m.email} onChange={(x) => setM(i, { email: x })} />
                     </div>
                     <div className="field wide">
                       <span className="field-label">Forma w opinii</span>
@@ -268,6 +322,17 @@ export function OpinionsPage() {
                     <ChoiceField label="Chorobie morskiej" options={SEASICK[form]} value={m.seasick} onChange={(x) => setM(i, { seasick: x })} />
                     <ChoiceField label="Odporność w trudnych warunkach" options={RESILIENCE} value={m.resilience} onChange={(x) => setM(i, { resilience: x })} />
                     <ChoiceField label="Nadaje się do szkolenia na stopień" options={TRAINING_FOR} value={m.trainingFor} onChange={(x) => setM(i, { trainingFor: x })} free />
+                    <div className="field wide">
+                      <span className="field-label">Opinia kapitana (PZŻ)</span>
+                      <Chips
+                        options={[
+                          { v: 'positive', label: '✓ pozytywna' },
+                          { v: 'negative', label: '✗ negatywna' },
+                        ]}
+                        value={m.verdict}
+                        onChange={(x) => setM(i, { verdict: m.verdict === x ? undefined : (x as CrewMember['verdict']) })}
+                      />
+                    </div>
                     <Area label="Uwagi kapitana o załogancie" value={m.opinionNotes} onChange={(x) => setM(i, { opinionNotes: x })} rows={3} />
                     <div className="row gap wrap">
                       <PdfButton k={m.id} members={[m]} label="📄 Opinia PDF" />

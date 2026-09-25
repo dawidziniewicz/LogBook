@@ -98,7 +98,7 @@ export function DayPage(props: { date: string; hour?: number }) {
         }
       >
         {table ? (
-          <div className="table-wrap">
+          <div className="table-wrap log-wrap">
             <table className="log-table">
               <thead>
                 <tr>
