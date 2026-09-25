@@ -5,11 +5,11 @@ import { galleyWatch, sortedDays, watchAt } from '../lib/compute';
 import { addDays, dateKey, fmtDate, uid } from '../lib/time';
 import { Card, Field } from '../components/ui';
 import type { CrewMember } from '../types';
+import { GRADES, ROLES } from '../data/opinion';
 
 const emptyMember = (): CrewMember => ({
   id: uid(), firstName: '', lastName: '', grade: '', patent: '', role: '', nationality: 'PL', docNo: '', birth: '', phone: '', info: '', watch: '',
 });
-const ROLES = ['Kapitan', 'I oficer', 'II oficer', 'III oficer', 'Załogant'];
 const p2 = (n: number) => String(n).padStart(2, '0');
 
 export function CrewPage() {
@@ -33,6 +33,10 @@ export function CrewPage() {
       <Card
         title={`Crew list (${v.crew.length})`}
         actions={
+          <div className="row gap-s">
+          <a className="btn small ghost" href="#/opinions">
+            📝 Opinie
+          </a>
           <button
             className="btn small"
             onClick={() => {
@@ -43,6 +47,7 @@ export function CrewPage() {
           >
             + Osoba
           </button>
+          </div>
         }
       >
         {v.crew.length === 0 && <p className="muted">Dodaj członków załogi – dane trafią do crew listy i karty rejsu.</p>}
@@ -75,7 +80,7 @@ export function CrewPage() {
                           <option value="III">III</option>
                         </select>
                       </label>
-                      <Field label="Stopień żeglarski" value={c.grade} onChange={upd('grade')} />
+                      <Field label="Stopień żeglarski" value={c.grade} onChange={upd('grade')} list="grades-crew" />
                       <Field label="Numer patentu" value={c.patent} onChange={upd('patent')} />
                       <Field label="Narodowość" value={c.nationality} onChange={upd('nationality')} />
                       <Field label="Nr dokumentu (paszport/ID)" value={c.docNo} onChange={upd('docNo')} />
@@ -100,6 +105,11 @@ export function CrewPage() {
             );
           })}
         </ul>
+        <datalist id="grades-crew">
+          {GRADES.map((g) => (
+            <option key={g} value={g} />
+          ))}
+        </datalist>
         <datalist id="roles">
           {ROLES.map((r) => (
             <option key={r} value={r} />

@@ -22,7 +22,8 @@ export function SettingsPage() {
   const exportVoyage = async () => {
     if (!active) return;
     const track = (await idbGet(`track:${active.id}`)) ?? [];
-    const blob = new Blob([JSON.stringify({ app: 'logbook', version: 1, voyage: active, track }, null, 2)], { type: 'application/json' });
+    const photo = await idbGet(`photo:${active.id}`);
+    const blob = new Blob([JSON.stringify({ app: 'logbook', version: 1, voyage: active, track, photo }, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = `dziennik-${(active.yachtName || active.name || 'rejs').replace(/\s+/g, '_')}-${dateKey()}.json`;
@@ -198,6 +199,7 @@ export function SettingsPage() {
               importVoyage(v);
               const id = useStore.getState().activeId!;
               if (Array.isArray(j.track)) await idbSet(`track:${id}`, j.track);
+              if (typeof j.photo === 'string') await idbSet(`photo:${id}`, j.photo);
               toast('Zaimportowano rejs');
             } catch {
               toast('To nie jest poprawny plik dziennika', 'err');

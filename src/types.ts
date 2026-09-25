@@ -63,6 +63,22 @@ export type CrewMember = {
   phone: string;
   info: string;
   watch: '' | 'I' | 'II' | 'III';
+  /** opinia z rejsu */
+  duties?: string;
+  seasick?: string;
+  resilience?: string;
+  trainingFor?: string;
+  opinionNotes?: string;
+  /** forma gramatyczna w opinii: „uczestniczył” / „uczestniczyła” */
+  form?: 'm' | 'f';
+};
+
+export type OpinionSettings = {
+  series: string;
+  remarks: string;
+  clubHeader: string;
+  sailArea: string;
+  signature?: Signature;
 };
 
 export type YachtData = {
@@ -102,6 +118,7 @@ export type Voyage = {
   crew: CrewMember[];
   training: { done: Record<string, boolean>; by: string; confirmed: string };
   card: { captain: string; grade: string; patent: string; phone: string; email: string; tidalPorts: string; tidalMiles: string };
+  opinion?: OpinionSettings;
   status: VoyageStatus;
   statusSince?: number;
   days: Record<string, Day>;

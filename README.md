@@ -8,6 +8,7 @@ Elektroniczny dziennik jachtowy odwzorowujący papierowy dziennik AKŻ AGH – P
 - **📍 przy każdej godzinie** – pozycja Φ/Λ, KD (kurs nad dnem), szybkość (średnia od poprzedniej pozycji), LOG; przy dostępie do internetu puste pola pogody (wiatr, ciśnienie, temperatura, zachmurzenie, widzialność, stan morza) z modelu Open‑Meteo – oznaczone jako „auto”.
 - **Mapa** (OpenStreetMap + znaki nawigacyjne OpenSeaMap) ze śladem rejsu; dotknięcie mapy podaje odległość od jachtu w Mm, kurs i czas dojścia, tryb „Linijka” mierzy trasę z wielu punktów. Obejrzane kafelki są zapisywane i działają offline.
 - **Ślad rejsu** na prawdziwej mapie (OSM + OpenSeaMap): na ekranie Start, w karcie rejsu i w wydruku/PDF.
+- **Opinie z rejsu** dla każdego załoganta (szablon AKŻ AGH) – jedna strona A4 z mapą śladu i zdjęciem załogi, eksport PDF.
 - **Przypomnienia** o pełnej godzinie (konfigurowalna minuta, interwał w morzu/porcie, powtórki, pola wymagane).
 - Tryb nocny (czerwony), tryb wachty (ekran nie gaśnie), eksport/import JSON, druk/PDF.
 

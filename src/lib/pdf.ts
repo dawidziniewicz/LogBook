@@ -55,19 +55,21 @@ export async function renderTrackImage(v: Voyage, track: Fix[], W = 1100, H = 82
   const lats = pts.map((p) => p.lat);
   const lons = pts.map((p) => p.lon);
   const [minLat, maxLat, minLon, maxLon] = [Math.min(...lats), Math.max(...lats), Math.min(...lons), Math.max(...lons)];
-  const pad = 70;
-  let z = 16;
-  while (z > 2) {
-    const w = worldX(maxLon, z) - worldX(minLon, z);
-    const h = worldY(minLat, z) - worldY(maxLat, z);
-    if (w <= W - 2 * pad && h <= H - 2 * pad) break;
-    z--;
-  }
-  if (pts.length === 1) z = 13;
+  const pad = Math.round(Math.min(W, H) * 0.09);
+  // płynne dopasowanie: kafelki z najbliższego wyższego poziomu, przeskalowane w dół
+  const spanX = Math.max(worldX(maxLon, 0) - worldX(minLon, 0), 1e-9);
+  const spanY = Math.max(worldY(minLat, 0) - worldY(maxLat, 0), 1e-9);
+  let zf = Math.log2(Math.min((W - 2 * pad) / spanX, (H - 2 * pad) / spanY));
+  if (pts.length === 1 || !isFinite(zf)) zf = 13;
+  zf = Math.max(2, Math.min(15, zf));
+  const z = Math.ceil(zf);
+  const k = 2 ** (zf - z); // ≤ 1
+  const VW = W / k;
+  const VH = H / k;
   const cx = (worldX(minLon, z) + worldX(maxLon, z)) / 2;
   const cy = (worldY(maxLat, z) + worldY(minLat, z)) / 2;
-  const x0 = cx - W / 2;
-  const y0 = cy - H / 2;
+  const x0 = cx - VW / 2;
+  const y0 = cy - VH / 2;
 
   const canvas = document.createElement('canvas');
   canvas.width = W;
@@ -75,23 +77,26 @@ export async function renderTrackImage(v: Voyage, track: Fix[], W = 1100, H = 82
   const ctx = canvas.getContext('2d')!;
   ctx.fillStyle = '#aad3df';
   ctx.fillRect(0, 0, W, H);
+  ctx.save();
+  ctx.scale(k, k);
 
   const n = 2 ** z;
   const jobs: Promise<void>[] = [];
   const tiles: { img: HTMLImageElement | null; x: number; y: number; layer: number }[] = [];
-  for (let tx = Math.floor(x0 / TILE); tx <= Math.floor((x0 + W) / TILE); tx++) {
-    for (let ty = Math.floor(y0 / TILE); ty <= Math.floor((y0 + H) / TILE); ty++) {
+  for (let tx = Math.floor(x0 / TILE); tx <= Math.floor((x0 + VW) / TILE); tx++) {
+    for (let ty = Math.floor(y0 / TILE); ty <= Math.floor((y0 + VH) / TILE); ty++) {
       if (ty < 0 || ty >= n) continue;
       const wx = ((tx % n) + n) % n;
       const pos = { x: tx * TILE - x0, y: ty * TILE - y0 };
       jobs.push(loadTile(`https://tile.openstreetmap.org/${z}/${wx}/${ty}.png`).then((img) => void tiles.push({ img, ...pos, layer: 0 })));
-      if (z <= 18) jobs.push(loadTile(`https://tiles.openseamap.org/seamark/${z}/${wx}/${ty}.png`).then((img) => void tiles.push({ img, ...pos, layer: 1 })));
+      jobs.push(loadTile(`https://tiles.openseamap.org/seamark/${z}/${wx}/${ty}.png`).then((img) => void tiles.push({ img, ...pos, layer: 1 })));
     }
   }
   await Promise.all(jobs);
-  for (const layer of [0, 1]) for (const tl of tiles) if (tl.layer === layer && tl.img) ctx.drawImage(tl.img, tl.x, tl.y);
+  for (const layer of [0, 1]) for (const tl of tiles) if (tl.layer === layer && tl.img) ctx.drawImage(tl.img, tl.x, tl.y, TILE + 0.5, TILE + 0.5);
+  ctx.restore();
 
-  const px = (p: { lat: number; lon: number }) => [worldX(p.lon, z) - x0, worldY(p.lat, z) - y0] as const;
+  const px = (p: { lat: number; lon: number }) => [(worldX(p.lon, z) - x0) * k, (worldY(p.lat, z) - y0) * k] as const;
   if (line.length > 1) {
     for (const [color, width] of [['#ffffff', 9], ['#3447aa', 5]] as const) {
       ctx.beginPath();
@@ -138,10 +143,10 @@ export async function renderTrackImage(v: Voyage, track: Fix[], W = 1100, H = 82
 
 /* ---------- dokument ---------- */
 
-type AutoTable = (doc: jsPDF, opts: Record<string, unknown>) => void;
+export type AutoTable = (doc: jsPDF, opts: Record<string, unknown>) => void;
 
-export async function buildVoyagePdf(v: Voyage, track: Fix[], onStep?: (s: string) => void): Promise<Blob> {
-  onStep?.('Wczytuję czcionki…');
+/** jsPDF + autotable z czcionką Roboto (polskie znaki) – ładowane dopiero przy eksporcie */
+export async function newPdfDoc() {
   const [{ jsPDF }, atMod, reg, bold] = await Promise.all([
     import('jspdf'),
     import('jspdf-autotable'),
@@ -149,13 +154,20 @@ export async function buildVoyagePdf(v: Voyage, track: Fix[], onStep?: (s: strin
     fontBase64(robotoBoldUrl),
   ]);
   const autoTable = (atMod.default ?? (atMod as unknown as { autoTable: AutoTable }).autoTable) as unknown as AutoTable;
-
   const doc = new jsPDF({ unit: 'mm', format: 'a4', compress: true });
   doc.addFileToVFS('Roboto-Regular.ttf', reg);
   doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal');
   doc.addFileToVFS('Roboto-Bold.ttf', bold);
   doc.addFont('Roboto-Bold.ttf', 'Roboto', 'bold');
   doc.setFont('Roboto', 'normal');
+  return { doc, autoTable };
+}
+
+export { t as pdfText };
+
+export async function buildVoyagePdf(v: Voyage, track: Fix[], onStep?: (s: string) => void): Promise<Blob> {
+  onStep?.('Wczytuję czcionki…');
+  const { doc, autoTable } = await newPdfDoc();
 
   const M = 12;
   const PW = 210;

@@ -15,6 +15,7 @@ import { ReferencePage } from './pages/ReferencePage';
 import { SettingsPage } from './pages/SettingsPage';
 import { PrintPage } from './pages/PrintPage';
 import { MapPage } from './pages/MapPage';
+import { OpinionsPage } from './pages/OpinionsPage';
 
 const NAV = [
   { to: '/', icon: '⌂', label: 'Start', match: (p: string[]) => p.length === 0 },
@@ -22,6 +23,7 @@ const NAV = [
   { to: '/map', icon: '🗺', label: 'Mapa', match: (p: string[]) => p[0] === 'map' },
   { to: '/voyage', icon: '⛵', label: 'Rejs i jacht', match: (p: string[]) => p[0] === 'voyage' },
   { to: '/crew', icon: '👥', label: 'Załoga', match: (p: string[]) => p[0] === 'crew' },
+  { to: '/opinions', icon: '📝', label: 'Opinie z rejsu', match: (p: string[]) => p[0] === 'opinions' },
   { to: '/summary', icon: 'Σ', label: 'Karta rejsu', match: (p: string[]) => p[0] === 'summary' },
   { to: '/ref', icon: '📻', label: 'UKF i skale', match: (p: string[]) => p[0] === 'ref' },
   { to: '/settings', icon: '⚙', label: 'Ustawienia', match: (p: string[]) => p[0] === 'settings' },
@@ -81,6 +83,7 @@ export function App() {
   } else if (p0 === 'map') page = <MapPage />;
   else if (p0 === 'voyage') page = <VoyagePage />;
   else if (p0 === 'crew') page = <CrewPage />;
+  else if (p0 === 'opinions') page = <OpinionsPage />;
   else if (p0 === 'summary') page = <SummaryPage />;
   else if (p0 === 'ref') page = <ReferencePage />;
   else if (p0 === 'settings') page = <SettingsPage />;

@@ -2043,3 +2043,32 @@ html.print-mode body {
 html.print-mode .leaflet-tile-pane {
   filter: none !important;
 }
+
+/* ===== Opinie ===== */
+.photo-row {
+  display: grid;
+  gap: 16px;
+  margin-top: 14px;
+}
+@media (min-width: 700px) {
+  .photo-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.crew-photo {
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+}
+.crew-photo.empty {
+  display: grid;
+  place-items: center;
+  background: var(--surface-2);
+  color: var(--muted);
+  border-style: dashed;
+}
+.crew-body .field.wide {
+  gap: 8px;
+}

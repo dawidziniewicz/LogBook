@@ -20,7 +20,7 @@ export function SummaryPage() {
 
   return (
     <div className="page">
-      <Card title="Karta rejsu">
+      <Card title="Karta rejsu" actions={<a className="btn small" href="#/opinions">📝 Opinie z rejsu</a>}>
         <div className="stats">
           <Stat label="dni rejsu" value={days.length} />
           <Stat label="Mm przebyto" value={total ? c(total.miles) : 0} />
